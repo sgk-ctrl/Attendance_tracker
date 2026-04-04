@@ -418,6 +418,32 @@ body {
   color: #4a5568;
   margin-top: 2px;
 }
+.quick-btns {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.quick-btn {
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.quick-all {
+  background: var(--green-100);
+  color: var(--green-600);
+  border: 1px solid var(--green-500);
+}
+.quick-all:active { background: var(--green-500); color: var(--white); }
+.quick-none {
+  background: var(--gray-200);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-400);
+}
+.quick-none:active { background: var(--gray-400); color: var(--white); }
 .stepper {
   display: flex;
   align-items: center;
@@ -1606,6 +1632,10 @@ function renderTallyScreen() {
       <div class="instrument-info">
         <div class="instrument-name">${inst.name}</div>
         <div class="instrument-expected">Expected: ${expected}</div>
+        <div class="quick-btns">
+          <button class="quick-btn quick-all" onclick="setTally(${inst.id}, ${expected})">All (${expected})</button>
+          <button class="quick-btn quick-none" onclick="setTally(${inst.id}, 0)">None</button>
+        </div>
       </div>
       <div class="stepper">
         <button onclick="stepValue(${inst.id}, -1)" aria-label="Decrease ${inst.name} count">&minus;</button>
@@ -1635,6 +1665,19 @@ window.stepValue = function(instId, delta) {
   let val = parseInt(inp.value);
   if (isNaN(val)) val = 0;
   val = Math.max(0, Math.min(max, val + delta));
+  inp.value = val;
+  state.tallies[instId] = val;
+  state.hasDataEntered = true;
+  updateDot(instId, val, max);
+  updateCardBorder(instId, val, max);
+  debouncedTallyUpdate();
+};
+
+window.setTally = function(instId, val) {
+  if (navigator.vibrate) navigator.vibrate(10);
+  const inp = $('tally-' + instId);
+  const max = parseInt(inp.dataset.max);
+  val = Math.max(0, Math.min(max, val));
   inp.value = val;
   state.tallies[instId] = val;
   state.hasDataEntered = true;
