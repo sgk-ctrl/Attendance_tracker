@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a365d">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
 <title>HNPS Junior Band Attendance</title>
 <style>
 :root {
@@ -79,8 +83,10 @@ body {
   background: rgba(255,255,255,0.15);
   border: none;
   color: var(--white);
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   font-size: 20px;
   cursor: pointer;
@@ -753,6 +759,52 @@ body {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
 }
+
+/* Accessibility: focus-visible styles for all interactive elements */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.student-row:focus-visible {
+  outline: 3px solid var(--blue-500);
+  outline-offset: 2px;
+}
+
+/* Accessibility: reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .screen.active {
+    animation: none;
+  }
+}
+
+/* Submit button saving state */
+.btn.btn-saving {
+  opacity: 0.7;
+  cursor: wait;
+  position: relative;
+}
+
+/* Count-up animation for summary number */
+.big-number.counting {
+  transition: none;
+}
+
+/* Empty state message */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--gray-600);
+  font-size: 15px;
+}
+.empty-state .empty-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: block;
+}
 </style>
 </head>
 <body>
@@ -788,8 +840,9 @@ body {
 </div>
 
 <!-- Toasts -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-container" id="toastContainer" role="alert" aria-live="assertive"></div>
 
+<main>
 <!-- Screen 1: Date Confirmation -->
 <div class="screen active" id="screen1">
   <!-- Pending sync banner (Fix #3) -->
@@ -808,7 +861,7 @@ body {
       <div class="day-name" id="dayName"></div>
       <div class="full-date" id="fullDate"></div>
       <div id="sessionPickerWrap" class="session-picker">
-        <label>Select session:</label>
+        <label for="sessionPicker">Select session:</label>
         <select id="sessionPicker" onchange="updateSessionType()">
           <option value="monday_afternoon">Monday Afternoon (3:10 PM)</option>
           <option value="wednesday_morning">Wednesday Morning (7:45 AM)</option>
@@ -871,15 +924,15 @@ body {
   </p>
   <div id="instrumentList"></div>
   <div class="tally-footer">
-    <div class="tally-entered-count" id="tallyEnteredCount">0 of 11 entered</div>
-    <div class="tally-total">Accounted: <span id="tallyTotal">0</span> / <span id="tallyMax">71</span></div>
+    <div class="tally-entered-count" id="tallyEnteredCount" aria-live="polite">0 of 11 entered</div>
+    <div class="tally-total" aria-live="polite">Accounted: <span id="tallyTotal">0</span> / <span id="tallyMax">71</span></div>
     <button class="btn btn-primary" id="nextBtn" onclick="goToResolve()">Next</button>
   </div>
 </div>
 
 <!-- Screen 3: Resolve -->
 <div class="screen" id="screen3">
-  <div class="resolve-progress" id="resolveProgress"></div>
+  <div class="resolve-progress" id="resolveProgress" aria-live="polite"></div>
   <div id="autoResolvedInfo"></div>
   <div id="resolveList"></div>
   <div style="margin-top:20px;">
@@ -912,6 +965,8 @@ body {
   </div>
 </div>
 
+</main>
+
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -938,6 +993,19 @@ const state = {
   hasDataEntered: false,    // Track if any data has been entered (for nav guards)
 };
 
+// ---- Global Error Handlers ----
+window.onerror = function(msg, source, lineno, colno, error) {
+  console.error('Global error:', msg, source, lineno, colno, error);
+  hideSpinner();
+  toast('Something went wrong. Please try again.', 'error');
+  return false;
+};
+window.onunhandledrejection = function(event) {
+  console.error('Unhandled promise rejection:', event.reason);
+  hideSpinner();
+  toast('A network or system error occurred. Please try again.', 'error');
+};
+
 // ---- Helpers ----
 function $(id) { return document.getElementById(id); }
 function show(el) { el.style.display = ''; }
@@ -949,6 +1017,15 @@ function showSpinner(text) {
 }
 function hideSpinner() {
   $('spinner').classList.remove('active');
+}
+
+// Debounce utility
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
 }
 
 // Fix #13: Error toasts 6s with tap-to-dismiss, success 3s
@@ -1049,6 +1126,10 @@ window.addEventListener('beforeunload', function(e) {
 // ---- Screen 1: Init ----
 function initScreen1() {
   const now = new Date();
+  if (isNaN(now.getTime())) {
+    toast('Could not determine current date. Please check device settings.', 'error');
+    return;
+  }
   state.sessionDate = now;
   state.year = now.getFullYear();
   state.term = calcTerm(now);
@@ -1077,26 +1158,32 @@ function initScreen1() {
 }
 
 async function checkExistingSession() {
-  const dateStr = dateToISO(state.sessionDate);
-  const { data, error } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('session_date', dateStr)
-    .eq('session_type', state.sessionType)
-    .maybeSingle();
+  try {
+    const dateStr = dateToISO(state.sessionDate);
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('session_date', dateStr)
+      .eq('session_type', state.sessionType)
+      .maybeSingle();
 
-  if (error) { console.error(error); return; }
+    if (error) throw error;
 
-  if (data) {
-    state.existingSession = data;
-    show($('existingWarning'));
-    show($('editBtn'));
-    $('startBtn').textContent = 'Start New Attendance';
-  } else {
-    state.existingSession = null;
-    hide($('existingWarning'));
-    hide($('editBtn'));
-    $('startBtn').textContent = 'Start Attendance';
+    if (data) {
+      state.existingSession = data;
+      show($('existingWarning'));
+      show($('editBtn'));
+      $('startBtn').textContent = 'Start New Attendance';
+    } else {
+      state.existingSession = null;
+      hide($('existingWarning'));
+      hide($('editBtn'));
+      $('startBtn').textContent = 'Start Attendance';
+    }
+  } catch (e) {
+    console.error('checkExistingSession error:', e);
+    toast('Could not check for existing sessions.', 'error');
+    hideSpinner();
   }
 }
 
@@ -1206,51 +1293,55 @@ window.retryPendingSync = async function() {
 
   showSpinner('Syncing pending attendance...');
   let allSynced = true;
-  for (const key of keys) {
-    try {
-      const data = JSON.parse(localStorage.getItem(key));
-      if (!data || !data.payload) { localStorage.removeItem(key); continue; }
+  try {
+    for (const key of keys) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key));
+        if (!data || !data.payload) { localStorage.removeItem(key); continue; }
 
-      // Find or create session
-      let session;
-      const { data: existing } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('session_date', data.date)
-        .eq('session_type', data.sessionType)
-        .maybeSingle();
-
-      if (existing) {
-        session = existing;
-      } else {
-        const { data: created, error: createErr } = await supabase
+        // Find or create session
+        let session;
+        const { data: existing, error: findErr } = await supabase
           .from('sessions')
-          .insert({
-            session_date: data.date,
-            session_type: data.sessionType,
-            term: data.term,
-            year: data.year
-          })
-          .select()
-          .single();
-        if (createErr) throw createErr;
-        session = created;
+          .select('*')
+          .eq('session_date', data.date)
+          .eq('session_type', data.sessionType)
+          .maybeSingle();
+        if (findErr) throw findErr;
+
+        if (existing) {
+          session = existing;
+        } else {
+          const { data: created, error: createErr } = await supabase
+            .from('sessions')
+            .insert({
+              session_date: data.date,
+              session_type: data.sessionType,
+              term: data.term,
+              year: data.year
+            })
+            .select()
+            .single();
+          if (createErr) throw createErr;
+          session = created;
+        }
+
+        // Update session_id in payload
+        const records = data.payload.map(r => ({ ...r, session_id: session.id }));
+        const { error } = await supabase
+          .from('attendance')
+          .upsert(records, { onConflict: 'session_id,student_id' });
+        if (error) throw error;
+
+        localStorage.removeItem(key);
+      } catch (e) {
+        console.error('Sync failed for', key, e);
+        allSynced = false;
       }
-
-      // Update session_id in payload
-      const records = data.payload.map(r => ({ ...r, session_id: session.id }));
-      const { error } = await supabase
-        .from('attendance')
-        .upsert(records, { onConflict: 'session_id,student_id' });
-      if (error) throw error;
-
-      localStorage.removeItem(key);
-    } catch (e) {
-      console.error('Sync failed for', key, e);
-      allSynced = false;
     }
+  } finally {
+    hideSpinner();
   }
-  hideSpinner();
 
   if (allSynced) {
     toast('Pending attendance synced!', 'success');
@@ -1287,6 +1378,8 @@ async function loadData() {
     } else {
       toast('Failed to load data: ' + e.message, 'error');
       console.error(e);
+      hideSpinner();
+      return;
     }
   }
   hideSpinner();
@@ -1296,6 +1389,31 @@ async function loadData() {
 window.startAttendance = async function(editMode) {
   state.editMode = !!editMode;
   await loadData();
+
+  // Handle empty instruments or students
+  if (!state.instruments || state.instruments.length === 0) {
+    hideSpinner();
+    $('instrumentList').innerHTML = '<div class="empty-state"><span class="empty-icon">🎵</span>No instruments found in the database.<br>Please contact the administrator.</div>';
+    switchScreen(2);
+    return;
+  }
+  if (!state.students || state.students.length === 0) {
+    hideSpinner();
+    $('instrumentList').innerHTML = '<div class="empty-state"><span class="empty-icon">👤</span>No active students found in the database.<br>Please contact the administrator.</div>';
+    switchScreen(2);
+    return;
+  }
+
+  // Validate all student instrument_ids reference valid instruments
+  const validInstIds = new Set(state.instruments.map(i => i.id));
+  const invalidStudents = state.students.filter(s => !validInstIds.has(s.instrument_id));
+  if (invalidStudents.length > 0) {
+    console.warn('Students with invalid instrument IDs:', invalidStudents);
+    // Filter them out gracefully rather than breaking
+    state.students = state.students.filter(s => validInstIds.has(s.instrument_id));
+    state.totalStudents = state.students.length;
+    toast(`${invalidStudents.length} student(s) have invalid instrument assignments and were excluded.`, 'error');
+  }
 
   const dateStr = dateToISO(state.sessionDate);
   showSpinner('Preparing session...');
@@ -1375,6 +1493,13 @@ function renderTallyScreen() {
 
   state.instruments.forEach(inst => {
     const expected = state.students.filter(s => s.instrument_id === inst.id).length;
+
+    // Handle instruments with 0 active students — auto-set to 0 and skip display
+    if (expected === 0) {
+      state.tallies[inst.id] = 0;
+      return;
+    }
+
     const val = state.tallies[inst.id] ?? '';
 
     // Fix #6: Visual distinction for card borders
@@ -1402,12 +1527,13 @@ function renderTallyScreen() {
         <div class="instrument-expected">Expected: ${expected}</div>
       </div>
       <div class="stepper">
-        <button onclick="stepValue(${inst.id}, -1)" aria-label="Decrease">&minus;</button>
+        <button onclick="stepValue(${inst.id}, -1)" aria-label="Decrease ${inst.name} count">&minus;</button>
         <input type="number" class="stepper-value" id="tally-${inst.id}"
                value="${val}" min="0" max="${expected}"
                data-inst="${inst.id}" data-max="${expected}"
-               inputmode="numeric" readonly>
-        <button onclick="stepValue(${inst.id}, 1)" aria-label="Increase">&plus;</button>
+               inputmode="numeric" readonly
+               aria-label="${inst.name} student count">
+        <button onclick="stepValue(${inst.id}, 1)" aria-label="Increase ${inst.name} count">&plus;</button>
       </div>
       <div class="match-indicator ${val === '' ? 'pending' : (val == expected ? 'match' : (val == 0 ? 'zero' : 'mismatch'))}" id="dot-${inst.id}">${indicatorContent}</div>
     `;
@@ -1417,7 +1543,9 @@ function renderTallyScreen() {
   updateTallyTotal();
 }
 
-// Fix #10: Haptic feedback
+// Fix #10: Haptic feedback + debounced UI update
+const debouncedTallyUpdate = debounce(() => { updateTallyTotal(); }, 100);
+
 window.stepValue = function(instId, delta) {
   if (navigator.vibrate) navigator.vibrate(10);
   const inp = $('tally-' + instId);
@@ -1430,7 +1558,7 @@ window.stepValue = function(instId, delta) {
   state.hasDataEntered = true;
   updateDot(instId, val, max);
   updateCardBorder(instId, val, max);
-  updateTallyTotal();
+  debouncedTallyUpdate();
 };
 
 function updateDot(instId, val, max) {
@@ -1459,6 +1587,10 @@ function updateCardBorder(instId, val, max) {
 function updateTallyTotal() {
   let total = 0;
   let filledCount = 0;
+  const visibleInstruments = state.instruments.filter(inst => {
+    const expected = state.students.filter(s => s.instrument_id === inst.id).length;
+    return expected > 0;
+  });
   state.instruments.forEach(inst => {
     if (state.tallies[inst.id] !== undefined) {
       filledCount++;
@@ -1466,8 +1598,8 @@ function updateTallyTotal() {
     }
   });
   $('tallyTotal').textContent = total;
-  // Fix #6: Show entered count
-  $('tallyEnteredCount').textContent = `${filledCount} of ${state.instruments.length} entered`;
+  // Fix #6: Show entered count (only visible instruments)
+  $('tallyEnteredCount').textContent = `${Math.min(filledCount, state.instruments.length)} of ${state.instruments.length} entered`;
   $('nextBtn').disabled = filledCount < state.instruments.length;
 }
 
@@ -1550,18 +1682,27 @@ const origGoToResolve = function() {
     const slist = $('slist-' + inst.id);
     studs.forEach(s => {
       const row = document.createElement('div');
-      row.className = 'student-row' + (state.attendance[s.id] ? ' checked' : '');
+      const isPresent = !!state.attendance[s.id];
+      row.className = 'student-row' + (isPresent ? ' checked' : '');
+      row.setAttribute('role', 'checkbox');
+      row.setAttribute('aria-checked', String(isPresent));
+      row.setAttribute('tabindex', '0');
       row.innerHTML = `
         <div class="checkbox">&#10003;</div>
         <div class="student-name">${s.first_name} ${s.last_name}</div>
         <div class="student-grade">${s.grade || '?'}</div>
       `;
-      row.addEventListener('click', () => {
+      const toggleRow = () => {
         const isChecked = row.classList.toggle('checked');
+        row.setAttribute('aria-checked', String(isChecked));
         state.attendance[s.id] = isChecked;
         state.hasDataEntered = true;
         updateResolveCount(inst.id, count, studs);
         validateResolveScreen();
+      };
+      row.addEventListener('click', toggleRow);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleRow(); }
       });
       slist.appendChild(row);
     });
@@ -1612,7 +1753,15 @@ function validateResolveScreen() {
 }
 
 // ---- Submit (Fix #3: save to localStorage on failure) ----
+let isSubmitting = false;
 window.submitAttendance = async function() {
+  if (isSubmitting) return; // Prevent double-submit
+  isSubmitting = true;
+
+  const submitBtn = $('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving...';
+  submitBtn.classList.add('btn-saving');
   showSpinner('Saving attendance...');
 
   const records = state.students.map(s => ({
@@ -1622,11 +1771,40 @@ window.submitAttendance = async function() {
   }));
 
   try {
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('attendance')
       .upsert(records, { onConflict: 'session_id,student_id' });
 
-    if (error) throw error;
+    if (error) {
+      // Handle case where students were removed between load and submit
+      if (error.code === '23503' || (error.message && error.message.includes('foreign key'))) {
+        toast('Some students may have been removed. Retrying with current roster...', 'error');
+        // Re-fetch students and retry with only valid ones
+        try {
+          const { data: freshStudents } = await supabase.from('students').select('id').eq('active', true);
+          const validIds = new Set((freshStudents || []).map(s => s.id));
+          const validRecords = records.filter(r => validIds.has(r.student_id));
+          const { error: retryErr } = await supabase
+            .from('attendance')
+            .upsert(validRecords, { onConflict: 'session_id,student_id' });
+          if (retryErr) throw retryErr;
+          toast('Attendance saved (some students were excluded due to roster changes).', 'success');
+          state.hasDataEntered = false;
+          const dateStr = dateToISO(state.sessionDate);
+          localStorage.removeItem(`pending_attendance_${dateStr}_${state.sessionType}`);
+          renderSummary();
+          switchScreen(4);
+          hideSpinner();
+          isSubmitting = false;
+          submitBtn.textContent = 'Submit Attendance';
+          submitBtn.classList.remove('btn-saving');
+          return;
+        } catch (retryE) {
+          throw retryE;
+        }
+      }
+      throw error;
+    }
 
     toast('Attendance saved successfully!', 'success');
     state.hasDataEntered = false;
@@ -1642,15 +1820,43 @@ window.submitAttendance = async function() {
     savePendingAttendance(records);
     toast('Failed to save. Data saved locally for retry.', 'error');
     console.error(e);
+    // Re-enable submit on error
+    submitBtn.disabled = false;
   }
 
   hideSpinner();
+  isSubmitting = false;
+  submitBtn.textContent = 'Submit Attendance';
+  submitBtn.classList.remove('btn-saving');
 };
 
 // ---- Screen 4: Summary ----
+function animateCountUp(el, target, total, duration) {
+  const text = `${target} / ${total}`;
+  // Check for reduced motion preference
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = text;
+    return;
+  }
+  let start = 0;
+  const startTime = performance.now();
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(eased * target);
+    el.textContent = `${current} / ${total}`;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 function renderSummary() {
   const presentCount = state.students.filter(s => state.attendance[s.id]).length;
-  $('summaryTotal').textContent = `${presentCount} / ${state.totalStudents}`;
+  // Count-up animation for total
+  const summaryTotalEl = $('summaryTotal');
+  animateCountUp(summaryTotalEl, presentCount, state.totalStudents, 800);
   $('summaryLabel').textContent = 'students present';
 
   const bd = $('summaryBreakdown');
@@ -1661,6 +1867,8 @@ function renderSummary() {
 
   state.instruments.forEach(inst => {
     const studs = state.students.filter(s => s.instrument_id === inst.id);
+    // Skip instruments with 0 active students
+    if (studs.length === 0) return;
     const present = studs.filter(s => state.attendance[s.id]).length;
 
     const row = document.createElement('div');
@@ -1722,6 +1930,7 @@ window.loadReport = async function() {
   const term = $('reportTerm').value;
   const rc = $('reportContent');
   rc.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-600);">Loading report...</div>';
+  showSpinner('Loading report...');
 
   try {
     // Load sessions for filters
@@ -1732,6 +1941,7 @@ window.loadReport = async function() {
 
     if (!sessions || sessions.length === 0) {
       rc.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-600);">No sessions found for this period.</div>';
+      hideSpinner();
       return;
     }
 
@@ -1817,8 +2027,11 @@ window.loadReport = async function() {
     rc.innerHTML = html;
 
   } catch (e) {
-    rc.innerHTML = `<div style="color:var(--red-600);padding:12px;">Error: ${e.message}</div>`;
+    rc.innerHTML = `<div style="color:var(--red-600);padding:12px;">Error loading report: ${e.message}. Please try again.</div>`;
     console.error(e);
+    toast('Failed to load report.', 'error');
+  } finally {
+    hideSpinner();
   }
 };
 
