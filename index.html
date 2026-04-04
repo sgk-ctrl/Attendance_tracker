@@ -859,7 +859,9 @@ select:focus-visible,
   <div id="attendanceTab">
     <div class="card date-display">
       <div class="day-name" id="dayName"></div>
-      <div class="full-date" id="fullDate"></div>
+      <div class="full-date" id="fullDate" style="cursor:pointer;" onclick="$('datePicker').showPicker ? $('datePicker').showPicker() : $('datePicker').focus()"></div>
+      <input type="date" id="datePicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" onchange="onDateChange(this.value)">
+      <div style="font-size:13px;color:var(--blue-600);margin-top:4px;cursor:pointer;" onclick="$('datePicker').showPicker ? $('datePicker').showPicker() : $('datePicker').focus()">tap to change date</div>
       <div id="sessionPickerWrap" class="session-picker">
         <label for="sessionPicker">Select session:</label>
         <select id="sessionPicker" onchange="updateSessionType()">
@@ -1153,6 +1155,7 @@ function initScreen1() {
   $('dayName').textContent = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeek];
   $('fullDate').textContent = formatDate(now);
   $('termBadge').textContent = `Term ${state.term}, ${state.year}`;
+  $('datePicker').value = dateToISO(now);
 
   // Fix #8: Set term override default
   $('termOverrideSelect').value = String(state.term);
@@ -1204,6 +1207,30 @@ async function checkExistingSession() {
 
 window.updateSessionType = function() {
   state.sessionType = $('sessionPicker').value;
+  checkExistingSession();
+};
+
+window.onDateChange = function(val) {
+  if (!val) return;
+  const parts = val.split('-');
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  if (isNaN(d.getTime())) return;
+  state.sessionDate = d;
+  state.year = d.getFullYear();
+  state.term = calcTerm(d);
+  const dayOfWeek = d.getDay();
+  $('dayName').textContent = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeek];
+  $('fullDate').textContent = formatDate(d);
+  $('termBadge').textContent = `Term ${state.term}, ${state.year}`;
+  $('datePicker').value = val;
+  // Pre-select session based on day
+  if (dayOfWeek === 3) {
+    state.sessionType = 'wednesday_morning';
+    $('sessionPicker').value = 'wednesday_morning';
+  } else {
+    state.sessionType = 'monday_afternoon';
+    $('sessionPicker').value = 'monday_afternoon';
+  }
   checkExistingSession();
 };
 
