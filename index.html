@@ -1054,12 +1054,27 @@ function dateToISO(d) {
 }
 
 function calcTerm(d) {
-  const m = d.getMonth() + 1; // 1-12
+  // NSW 2026 school term dates
+  const terms = [
+    { term: 1, start: [1, 27], end: [4, 3] },   // 27 Jan - 3 Apr
+    { term: 2, start: [4, 20], end: [7, 3] },    // 20 Apr - 3 Jul
+    { term: 3, start: [7, 20], end: [9, 25] },   // 20 Jul - 25 Sep
+    { term: 4, start: [10, 12], end: [12, 17] }, // 12 Oct - 17 Dec
+  ];
+  const m = d.getMonth() + 1;
   const day = d.getDate();
-  if (m <= 4 && !(m === 4 && day > 11)) return 1;
-  if (m <= 6 || (m === 7 && day <= 11)) return 2;
-  if (m <= 9 && !(m === 9 && day > 19)) return 3;
-  return 4;
+  for (const t of terms) {
+    const afterStart = m > t.start[0] || (m === t.start[0] && day >= t.start[1]);
+    const beforeEnd = m < t.end[0] || (m === t.end[0] && day <= t.end[1]);
+    if (afterStart && beforeEnd) return t.term;
+  }
+  // During holidays — return nearest term
+  if (m <= 1 && day < 27) return 1;
+  if (m >= 12 && day > 17) return 4;
+  if (m === 4 && day > 3 && day < 20) return 2;
+  if (m === 7 && day > 3 && day < 20) return 3;
+  if ((m === 9 && day > 25) || (m === 10 && day < 12)) return 4;
+  return 1;
 }
 
 function sessionTypeLabel(t) {
