@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HNPS Junior Band Attendance</title>
+<style>
+:root {
+  --blue-900: #1a365d;
+  --blue-800: #1e3a5f;
+  --blue-700: #2b6cb0;
+  --blue-600: #3182ce;
+  --blue-500: #4299e1;
+  --blue-400: #63b3ed;
+  --blue-100: #ebf8ff;
+  --blue-50: #f0f7ff;
+  --gray-900: #1a202c;
+  --gray-700: #4a5568;
+  --gray-600: #718096;
+  --gray-400: #cbd5e0;
+  --gray-300: #e2e8f0;
+  --gray-200: #edf2f7;
+  --gray-100: #f7fafc;
+  --gray-50: #fafbfc;
+  --green-500: #48bb78;
+  --green-600: #38a169;
+  --green-100: #f0fff4;
+  --red-500: #f56565;
+  --red-600: #e53e3e;
+  --red-100: #fff5f5;
+  --orange-500: #ed8936;
+  --orange-100: #fffaf0;
+  --white: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.2s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--gray-100);
+  color: var(--gray-900);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--blue-900), var(--blue-700));
+  color: var(--white);
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.header-sub {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.back-btn {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: var(--white);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+.back-btn:active { background: rgba(255,255,255,0.3); }
+.back-btn.hidden { display: none; }
+
+/* Progress indicator */
+.progress-indicator {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  padding: 10px 20px 0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.progress-indicator.active { display: flex; }
+.progress-step {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--gray-300);
+  color: var(--gray-600);
+  flex-shrink: 0;
+}
+.progress-step.current {
+  background: var(--blue-600);
+  color: var(--white);
+}
+.progress-step.done {
+  background: var(--green-500);
+  color: var(--white);
+}
+.progress-line {
+  height: 2px;
+  width: 32px;
+  background: var(--gray-300);
+  flex-shrink: 0;
+}
+.progress-line.done {
+  background: var(--green-500);
+}
+
+/* Screens */
+.screen {
+  display: none;
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  animation: fadeIn 0.25s ease;
+}
+.screen.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Cards */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* Screen 1: Date Confirmation */
+.date-display {
+  text-align: center;
+  padding: 32px 20px;
+}
+.date-display .day-name {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--blue-600);
+  font-weight: 600;
+}
+.date-display .full-date {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 8px 0;
+  color: var(--gray-900);
+}
+.session-badge {
+  display: inline-block;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.term-badge {
+  display: inline-block;
+  background: var(--gray-200);
+  color: var(--gray-700);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+.term-edit-link {
+  font-size: 12px;
+  color: var(--blue-600);
+  cursor: pointer;
+  margin-left: 6px;
+  text-decoration: underline;
+  display: inline-block;
+  vertical-align: middle;
+}
+.term-override-select {
+  padding: 6px 10px;
+  border: 2px solid var(--blue-500);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--white);
+  color: var(--gray-700);
+  margin-top: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%234a5568' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 26px;
+}
+.session-picker {
+  margin-top: 16px;
+}
+.session-picker label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+  display: block;
+  margin-bottom: 8px;
+}
+.session-picker select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  background: var(--white);
+  color: var(--gray-900);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a5568' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.warning-banner {
+  background: var(--orange-100);
+  border: 1px solid var(--orange-500);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--gray-900);
+}
+.warning-banner .icon { font-size: 18px; flex-shrink: 0; }
+
+/* Pending sync banner */
+.pending-banner {
+  background: var(--orange-100);
+  border: 1px solid var(--orange-500);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--gray-900);
+  cursor: pointer;
+}
+.pending-banner .icon { font-size: 18px; flex-shrink: 0; }
+
+/* Buttons */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  min-height: 52px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-700));
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+.btn-secondary {
+  background: var(--white);
+  color: var(--blue-700);
+  border: 2px solid var(--blue-600);
+}
+.btn-success {
+  background: linear-gradient(135deg, var(--green-500), var(--green-600));
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+.btn-success:active:not(:disabled) { transform: scale(0.98); }
+.btn + .btn { margin-top: 12px; }
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+.btn-row .btn { flex: 1; }
+
+/* Tab bar on screen 1 */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  background: var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+.tab-bar button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-600);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.tab-bar button.active {
+  background: var(--white);
+  color: var(--blue-700);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Screen 2: Instrument Tally */
+.instrument-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-left: 3px dashed var(--gray-400);
+  transition: border-left var(--transition);
+}
+.instrument-card.entered-match {
+  border-left: 3px solid var(--green-500);
+}
+.instrument-card.entered-mismatch {
+  border-left: 3px solid var(--orange-500);
+}
+.instrument-card.entered-zero {
+  border-left: 3px solid var(--red-500);
+}
+.instrument-info {
+  flex: 1;
+  min-width: 0;
+}
+.instrument-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a202c;
+}
+.instrument-expected {
+  font-size: 13px;
+  color: #4a5568;
+  margin-top: 2px;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.stepper button {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--blue-500);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stepper button:first-child { border-radius: 10px 0 0 10px; }
+.stepper button:last-child { border-radius: 0 10px 10px 0; }
+.stepper button:active {
+  background: var(--blue-500);
+  color: var(--white);
+}
+.stepper-value {
+  width: 52px;
+  height: 48px;
+  border: 2px solid var(--blue-500);
+  border-left: none;
+  border-right: none;
+  background: var(--white);
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--gray-900);
+  -moz-appearance: textfield;
+}
+.stepper-value::-webkit-outer-spin-button,
+.stepper-value::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tally-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--white);
+  border-top: 1px solid var(--gray-300);
+  padding: 16px 20px;
+  margin: 0 -20px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+}
+.tally-total {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--gray-900);
+}
+.tally-total span { color: var(--blue-600); }
+.tally-entered-count {
+  text-align: center;
+  font-size: 13px;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+}
+
+/* Match indicator on instrument card — color-blind friendly icons */
+.match-indicator {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  font-size: 16px;
+  line-height: 20px;
+  text-align: center;
+  font-weight: 700;
+}
+.match-indicator.match { color: var(--green-500); }
+.match-indicator.mismatch { color: var(--orange-500); }
+.match-indicator.zero { color: var(--red-500); }
+.match-indicator.pending { color: var(--gray-400); }
+
+/* Screen 3: Resolve */
+.resolve-section {
+  margin-bottom: 24px;
+}
+.resolve-header {
+  background: var(--blue-100);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 14px 16px;
+  font-weight: 700;
+  color: var(--blue-800);
+  font-size: 15px;
+}
+.resolve-header small {
+  font-weight: 500;
+  color: var(--blue-600);
+  display: block;
+  font-size: 13px;
+  margin-top: 2px;
+}
+.student-list {
+  background: var(--white);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.student-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  cursor: pointer;
+  transition: background var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
+  gap: 12px;
+  min-height: 52px;
+}
+.student-row:last-child { border-bottom: none; }
+.student-row:active { background: var(--blue-50); }
+.student-row .checkbox {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--gray-400);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition);
+  font-size: 16px;
+  color: transparent;
+}
+.student-row.checked .checkbox {
+  background: var(--green-500);
+  border-color: var(--green-500);
+  color: var(--white);
+}
+.student-row .student-name {
+  font-size: 15px;
+  font-weight: 500;
+  flex: 1;
+}
+.student-row .student-grade {
+  font-size: 12px;
+  color: var(--gray-600);
+  flex-shrink: 0;
+}
+
+.resolve-progress {
+  text-align: center;
+  font-size: 14px;
+  color: var(--gray-600);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.resolve-validation {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+.resolve-validation.pending {
+  color: var(--orange-500);
+  background: var(--orange-100);
+}
+.resolve-validation.resolved {
+  color: var(--green-600);
+  background: var(--green-100);
+}
+
+.auto-resolved-note {
+  background: var(--green-100);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--green-600);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Screen 4: Summary */
+.summary-hero {
+  text-align: center;
+  padding: 24px;
+}
+.summary-hero .big-number {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--blue-700);
+}
+.summary-hero .big-label {
+  font-size: 14px;
+  color: var(--gray-600);
+  margin-top: 4px;
+}
+.summary-instrument {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.summary-instrument:last-child { border-bottom: none; }
+.summary-instrument .name { font-weight: 600; font-size: 14px; }
+.summary-instrument .count {
+  font-size: 14px;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+.absent-section { margin-top: 8px; }
+.absent-section h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--red-600);
+  margin-bottom: 8px;
+}
+.absent-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+.absent-name {
+  font-size: 13px;
+  color: var(--gray-600);
+  padding: 2px 0;
+}
+
+/* Reports */
+.report-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.report-filters select, .report-filters input {
+  padding: 10px 12px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  flex: 1;
+  min-width: 120px;
+  background: var(--white);
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.report-table th {
+  background: var(--blue-100);
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--blue-800);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+}
+.report-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.report-table tr:hover td { background: var(--gray-50); }
+.report-section-header {
+  font-weight: 700;
+  color: var(--gray-700);
+  margin: 20px 0 10px;
+  font-size: 15px;
+}
+.pct-bar {
+  height: 6px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  overflow: hidden;
+  width: 60px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.pct-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.pct-good { background: var(--green-500); }
+.pct-warn { background: var(--orange-500); }
+.pct-bad { background: var(--red-500); }
+
+/* Loading spinner */
+.spinner-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.85);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+}
+.spinner-overlay.active { display: flex; }
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--gray-300);
+  border-top-color: var(--blue-600);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-text { font-size: 14px; color: var(--gray-600); font-weight: 500; }
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  width: calc(100% - 40px);
+  max-width: 400px;
+}
+.toast {
+  background: var(--gray-900);
+  color: var(--white);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.toast.error { background: var(--red-600); }
+.toast.success { background: var(--green-600); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Scrollable report table */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div style="display:flex;align-items:center;">
+      <button class="back-btn hidden" id="backBtn" onclick="goBack()">&#8249;</button>
+      <div>
+        <h1>HNPS Junior Band</h1>
+        <div class="header-sub" id="headerSub">Attendance</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress Indicator (Fix #12) -->
+<div class="progress-indicator" id="progressIndicator">
+  <div class="progress-step" id="pStep1">1</div>
+  <div class="progress-line" id="pLine1"></div>
+  <div class="progress-step" id="pStep2">2</div>
+  <div class="progress-line" id="pLine2"></div>
+  <div class="progress-step" id="pStep3">3</div>
+  <div class="progress-line" id="pLine3"></div>
+  <div class="progress-step" id="pStep4">&check;</div>
+</div>
+
+<!-- Loading -->
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <div class="spinner-text" id="spinnerText">Loading...</div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Screen 1: Date Confirmation -->
+<div class="screen active" id="screen1">
+  <!-- Pending sync banner (Fix #3) -->
+  <div id="pendingBanner" class="pending-banner" style="display:none;" onclick="retryPendingSync()">
+    <span class="icon">&#128260;</span>
+    <div id="pendingBannerText">You have unsaved attendance. Tap to sync.</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="active" onclick="switchTab('attendance')">Attendance</button>
+    <button onclick="switchTab('reports')">Reports</button>
+  </div>
+
+  <div id="attendanceTab">
+    <div class="card date-display">
+      <div class="day-name" id="dayName"></div>
+      <div class="full-date" id="fullDate"></div>
+      <div id="sessionPickerWrap" class="session-picker">
+        <label>Select session:</label>
+        <select id="sessionPicker" onchange="updateSessionType()">
+          <option value="monday_afternoon">Monday Afternoon (3:10 PM)</option>
+          <option value="wednesday_morning">Wednesday Morning (7:45 AM)</option>
+        </select>
+      </div>
+      <div id="termBadgeWrap">
+        <span class="term-badge" id="termBadge"></span>
+        <span class="term-edit-link" id="termEditLink" onclick="showTermOverride()">edit</span>
+        <select class="term-override-select" id="termOverrideSelect" style="display:none;" onchange="applyTermOverride()">
+          <option value="1">Term 1</option>
+          <option value="2">Term 2</option>
+          <option value="3">Term 3</option>
+          <option value="4">Term 4</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="existingWarning" class="warning-banner" style="display:none;">
+      <span class="icon">&#9888;</span>
+      <div>
+        <strong>Attendance already recorded for this session.</strong>
+        <div style="margin-top:4px;font-size:13px;">You can view and edit the existing records.</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="startBtn" onclick="startAttendance()" style="margin-top:20px;">
+      Start Attendance
+    </button>
+    <button class="btn btn-secondary" id="editBtn" onclick="startAttendance(true)" style="display:none;margin-top:12px;">
+      View / Edit Existing
+    </button>
+  </div>
+
+  <div id="reportsTab" style="display:none;">
+    <div class="card">
+      <h3 style="margin-bottom:12px;font-size:16px;">Attendance Reports</h3>
+      <div class="report-filters">
+        <select id="reportYear" onchange="loadReport()">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+        </select>
+        <select id="reportTerm" onchange="loadReport()">
+          <option value="">All Terms</option>
+          <option value="1">Term 1</option>
+          <option value="2">Term 2</option>
+          <option value="3">Term 3</option>
+          <option value="4">Term 4</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="loadReport()" style="margin-bottom:16px;">Generate Report</button>
+      <div id="reportContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 2: Instrument Tally -->
+<div class="screen" id="screen2">
+  <p style="font-size:14px;color:var(--gray-600);margin-bottom:16px;">
+    Enter the count of students present for each instrument section.
+  </p>
+  <div id="instrumentList"></div>
+  <div class="tally-footer">
+    <div class="tally-entered-count" id="tallyEnteredCount">0 of 11 entered</div>
+    <div class="tally-total">Accounted: <span id="tallyTotal">0</span> / <span id="tallyMax">71</span></div>
+    <button class="btn btn-primary" id="nextBtn" onclick="goToResolve()">Next</button>
+  </div>
+</div>
+
+<!-- Screen 3: Resolve -->
+<div class="screen" id="screen3">
+  <div class="resolve-progress" id="resolveProgress"></div>
+  <div id="autoResolvedInfo"></div>
+  <div id="resolveList"></div>
+  <div style="margin-top:20px;">
+    <div class="resolve-validation pending" id="resolveValidation"></div>
+    <button class="btn btn-success" id="submitBtn" onclick="submitAttendance()" disabled>Submit Attendance</button>
+  </div>
+</div>
+
+<!-- Screen 4: Summary -->
+<div class="screen" id="screen4">
+  <div class="card summary-hero">
+    <div style="font-size:14px;color:var(--green-600);font-weight:600;margin-bottom:8px;">&#10003; Attendance Recorded</div>
+    <div class="big-number" id="summaryTotal"></div>
+    <div class="big-label" id="summaryLabel"></div>
+  </div>
+  <div class="card">
+    <h3 style="font-size:15px;margin-bottom:12px;">Breakdown by Instrument</h3>
+    <div id="summaryBreakdown"></div>
+  </div>
+  <div class="card" id="absentCard" style="display:none;">
+    <div class="absent-section">
+      <h4>Absent Students</h4>
+      <div id="absentList"></div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="goToEditCounts()">Edit Counts</button>
+    <button class="btn btn-secondary" onclick="goToEditStudents()">Edit Students</button>
+    <button class="btn btn-primary" onclick="goHome()">Done</button>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://dirdanwihxwfuqldruoy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRpcmRhbndpaHh3ZnVxbGRydW95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDQzMzcsImV4cCI6MjA5MDgyMDMzN30.k6r0ttZPvXWDr4gTBtP__fPYMX6DorpZjjMlXD5JfbE';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---- State ----
+const state = {
+  sessionDate: null,
+  sessionType: null,
+  sessionId: null,
+  term: null,
+  year: null,
+  instruments: [],
+  students: [],
+  tallies: {},          // instrumentId -> count entered
+  attendance: {},       // studentId -> true/false
+  existingSession: null,
+  editMode: false,
+  totalStudents: 0,
+  currentScreen: 1,
+  mismatchInstruments: [],  // Track mismatch instruments for validation
+  hasDataEntered: false,    // Track if any data has been entered (for nav guards)
+};
+
+// ---- Helpers ----
+function $(id) { return document.getElementById(id); }
+function show(el) { el.style.display = ''; }
+function hide(el) { el.style.display = 'none'; }
+
+function showSpinner(text) {
+  $('spinnerText').textContent = text || 'Loading...';
+  $('spinner').classList.add('active');
+}
+function hideSpinner() {
+  $('spinner').classList.remove('active');
+}
+
+// Fix #13: Error toasts 6s with tap-to-dismiss, success 3s
+function toast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  const duration = type === 'error' ? 6000 : 3000;
+  t.style.animation = `toastIn 0.3s ease, toastOut 0.3s ease ${duration / 1000 - 0.3}s forwards`;
+  t.addEventListener('click', () => t.remove());
+  $('toastContainer').appendChild(t);
+  setTimeout(() => { if (t.parentNode) t.remove(); }, duration + 300);
+}
+
+function formatDate(d) {
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function dateToISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function calcTerm(d) {
+  const m = d.getMonth() + 1; // 1-12
+  const day = d.getDate();
+  if (m <= 4 && !(m === 4 && day > 11)) return 1;
+  if (m <= 6 || (m === 7 && day <= 11)) return 2;
+  if (m <= 9 && !(m === 9 && day > 19)) return 3;
+  return 4;
+}
+
+function sessionTypeLabel(t) {
+  return t === 'monday_afternoon' ? 'Monday Afternoon (3:10 PM)' : 'Wednesday Morning (7:45 AM)';
+}
+
+// Fix #12: Update progress indicator
+function updateProgressIndicator(screen) {
+  const pi = $('progressIndicator');
+  if (screen === 1) {
+    pi.classList.remove('active');
+    return;
+  }
+  pi.classList.add('active');
+
+  const steps = [1, 2, 3, 4];
+  const screenToStep = { 2: 1, 3: 2, 4: 4 };
+  const currentStep = screenToStep[screen] || 1;
+
+  steps.forEach((s, i) => {
+    const stepEl = $('pStep' + (i + 1));
+    const lineEl = i < 3 ? $('pLine' + (i + 1)) : null;
+    stepEl.className = 'progress-step';
+    if (s < currentStep || screen === 4) {
+      stepEl.classList.add('done');
+    } else if (s === currentStep) {
+      stepEl.classList.add('current');
+    }
+    if (lineEl) {
+      lineEl.className = 'progress-line';
+      if (s < currentStep || screen === 4) {
+        lineEl.classList.add('done');
+      }
+    }
+  });
+}
+
+function switchScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen' + n).classList.add('active');
+  state.currentScreen = n;
+  const back = $('backBtn');
+  if (n === 1) { back.classList.add('hidden'); }
+  else { back.classList.remove('hidden'); }
+  updateProgressIndicator(n);
+  window.scrollTo(0, 0);
+}
+
+// Fix #1: beforeunload handler
+function hasUnsavedData() {
+  if (state.currentScreen < 2) return false;
+  const hasTallies = Object.keys(state.tallies).length > 0;
+  const hasAttendance = Object.keys(state.attendance).length > 0;
+  return hasTallies || hasAttendance;
+}
+
+window.addEventListener('beforeunload', function(e) {
+  if (hasUnsavedData()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ---- Screen 1: Init ----
+function initScreen1() {
+  const now = new Date();
+  state.sessionDate = now;
+  state.year = now.getFullYear();
+  state.term = calcTerm(now);
+
+  const dayOfWeek = now.getDay();
+  $('dayName').textContent = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeek];
+  $('fullDate').textContent = formatDate(now);
+  $('termBadge').textContent = `Term ${state.term}, ${state.year}`;
+
+  // Fix #8: Set term override default
+  $('termOverrideSelect').value = String(state.term);
+
+  // Pre-select the most likely session based on day of week
+  if (dayOfWeek === 3) {
+    state.sessionType = 'wednesday_morning';
+    $('sessionPicker').value = 'wednesday_morning';
+  } else {
+    state.sessionType = 'monday_afternoon';
+    $('sessionPicker').value = 'monday_afternoon';
+  }
+
+  checkExistingSession();
+
+  // Fix #3: Check for pending attendance
+  checkPendingAttendance();
+}
+
+async function checkExistingSession() {
+  const dateStr = dateToISO(state.sessionDate);
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('session_date', dateStr)
+    .eq('session_type', state.sessionType)
+    .maybeSingle();
+
+  if (error) { console.error(error); return; }
+
+  if (data) {
+    state.existingSession = data;
+    show($('existingWarning'));
+    show($('editBtn'));
+    $('startBtn').textContent = 'Start New Attendance';
+  } else {
+    state.existingSession = null;
+    hide($('existingWarning'));
+    hide($('editBtn'));
+    $('startBtn').textContent = 'Start Attendance';
+  }
+}
+
+window.updateSessionType = function() {
+  state.sessionType = $('sessionPicker').value;
+  checkExistingSession();
+};
+
+// Fix #14: Auto-load reports when switching to Reports tab
+window.switchTab = function(tab) {
+  const btns = document.querySelectorAll('.tab-bar button');
+  if (tab === 'attendance') {
+    btns[0].classList.add('active');
+    btns[1].classList.remove('active');
+    show($('attendanceTab'));
+    hide($('reportsTab'));
+  } else {
+    btns[0].classList.remove('active');
+    btns[1].classList.add('active');
+    hide($('attendanceTab'));
+    show($('reportsTab'));
+    loadReport();
+  }
+};
+
+// Fix #8: Term override
+window.showTermOverride = function() {
+  hide($('termBadge'));
+  hide($('termEditLink'));
+  show($('termOverrideSelect'));
+};
+
+window.applyTermOverride = function() {
+  const newTerm = parseInt($('termOverrideSelect').value);
+  state.term = newTerm;
+  $('termBadge').textContent = `Term ${state.term}, ${state.year}`;
+  show($('termBadge'));
+  show($('termEditLink'));
+  hide($('termOverrideSelect'));
+};
+
+// ---- Fix #3: localStorage caching & offline fallback ----
+function cacheData(instruments, students) {
+  try {
+    localStorage.setItem('hnps_instruments', JSON.stringify(instruments));
+    localStorage.setItem('hnps_students', JSON.stringify(students));
+    localStorage.setItem('hnps_cache_time', new Date().toISOString());
+  } catch (e) { console.warn('Cache write failed', e); }
+}
+
+function getCachedData() {
+  try {
+    const instruments = JSON.parse(localStorage.getItem('hnps_instruments'));
+    const students = JSON.parse(localStorage.getItem('hnps_students'));
+    if (instruments && students) return { instruments, students };
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+function savePendingAttendance(payload) {
+  try {
+    const dateStr = dateToISO(state.sessionDate);
+    const key = `pending_attendance_${dateStr}_${state.sessionType}`;
+    localStorage.setItem(key, JSON.stringify({
+      payload,
+      date: dateStr,
+      sessionType: state.sessionType,
+      term: state.term,
+      year: state.year,
+      savedAt: new Date().toISOString()
+    }));
+  } catch (e) { console.warn('Failed to save pending attendance', e); }
+}
+
+function getPendingAttendanceKeys() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('pending_attendance_')) {
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+function checkPendingAttendance() {
+  const keys = getPendingAttendanceKeys();
+  if (keys.length > 0) {
+    try {
+      const data = JSON.parse(localStorage.getItem(keys[0]));
+      $('pendingBannerText').textContent = `You have unsaved attendance from ${data.date}. Tap to sync.`;
+      show($('pendingBanner'));
+    } catch (e) {
+      hide($('pendingBanner'));
+    }
+  } else {
+    hide($('pendingBanner'));
+  }
+}
+
+window.retryPendingSync = async function() {
+  const keys = getPendingAttendanceKeys();
+  if (keys.length === 0) {
+    hide($('pendingBanner'));
+    return;
+  }
+
+  showSpinner('Syncing pending attendance...');
+  let allSynced = true;
+  for (const key of keys) {
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (!data || !data.payload) { localStorage.removeItem(key); continue; }
+
+      // Find or create session
+      let session;
+      const { data: existing } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('session_date', data.date)
+        .eq('session_type', data.sessionType)
+        .maybeSingle();
+
+      if (existing) {
+        session = existing;
+      } else {
+        const { data: created, error: createErr } = await supabase
+          .from('sessions')
+          .insert({
+            session_date: data.date,
+            session_type: data.sessionType,
+            term: data.term,
+            year: data.year
+          })
+          .select()
+          .single();
+        if (createErr) throw createErr;
+        session = created;
+      }
+
+      // Update session_id in payload
+      const records = data.payload.map(r => ({ ...r, session_id: session.id }));
+      const { error } = await supabase
+        .from('attendance')
+        .upsert(records, { onConflict: 'session_id,student_id' });
+      if (error) throw error;
+
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.error('Sync failed for', key, e);
+      allSynced = false;
+    }
+  }
+  hideSpinner();
+
+  if (allSynced) {
+    toast('Pending attendance synced!', 'success');
+    hide($('pendingBanner'));
+    checkExistingSession();
+  } else {
+    toast('Some records failed to sync. Will retry later.', 'error');
+  }
+};
+
+// ---- Load Instruments & Students (Fix #3: with caching) ----
+async function loadData() {
+  showSpinner('Loading instruments and students...');
+  try {
+    const [instRes, studRes] = await Promise.all([
+      supabase.from('instruments').select('*').order('display_order'),
+      supabase.from('students').select('*').eq('active', true).order('last_name').order('first_name')
+    ]);
+    if (instRes.error) throw instRes.error;
+    if (studRes.error) throw studRes.error;
+    state.instruments = instRes.data;
+    state.students = studRes.data;
+    state.totalStudents = studRes.data.length;
+    // Cache for offline use
+    cacheData(state.instruments, state.students);
+  } catch (e) {
+    // Try fallback to cached data
+    const cached = getCachedData();
+    if (cached) {
+      state.instruments = cached.instruments;
+      state.students = cached.students;
+      state.totalStudents = cached.students.length;
+      toast('Using cached data -- offline mode', 'error');
+    } else {
+      toast('Failed to load data: ' + e.message, 'error');
+      console.error(e);
+    }
+  }
+  hideSpinner();
+}
+
+// ---- Start Attendance ----
+window.startAttendance = async function(editMode) {
+  state.editMode = !!editMode;
+  await loadData();
+
+  const dateStr = dateToISO(state.sessionDate);
+  showSpinner('Preparing session...');
+
+  try {
+    // Get or create session
+    let session = state.existingSession;
+    if (!session) {
+      // Try to find existing session first (may have been created by a prior attempt)
+      const { data: existing } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('session_date', dateStr)
+        .eq('session_type', state.sessionType)
+        .maybeSingle();
+      if (existing) {
+        session = existing;
+      } else {
+        const { data, error } = await supabase
+          .from('sessions')
+          .insert({
+            session_date: dateStr,
+            session_type: state.sessionType,
+            term: state.term,
+            year: state.year
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        session = data;
+      }
+    }
+    state.sessionId = session.id;
+
+    // If editing, load existing attendance
+    if (state.editMode && state.existingSession) {
+      const { data: attData, error: attErr } = await supabase
+        .from('attendance')
+        .select('student_id, present')
+        .eq('session_id', session.id);
+      if (attErr) throw attErr;
+
+      // Pre-fill attendance state
+      state.attendance = {};
+      (attData || []).forEach(a => {
+        state.attendance[a.student_id] = a.present;
+      });
+
+      // Calculate tallies from existing attendance
+      state.tallies = {};
+      state.instruments.forEach(inst => {
+        const studs = state.students.filter(s => s.instrument_id === inst.id);
+        const present = studs.filter(s => state.attendance[s.id] === true).length;
+        state.tallies[inst.id] = present;
+      });
+    } else {
+      state.tallies = {};
+      state.attendance = {};
+    }
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+    hideSpinner();
+    return;
+  }
+
+  hideSpinner();
+  $('headerSub').textContent = sessionTypeLabel(state.sessionType);
+  renderTallyScreen();
+  switchScreen(2);
+};
+
+// ---- Screen 2: Tally ----
+function renderTallyScreen() {
+  const list = $('instrumentList');
+  list.innerHTML = '';
+  $('tallyMax').textContent = state.totalStudents;
+
+  state.instruments.forEach(inst => {
+    const expected = state.students.filter(s => s.instrument_id === inst.id).length;
+    const val = state.tallies[inst.id] ?? '';
+
+    // Fix #6: Visual distinction for card borders
+    let borderClass = '';
+    if (val !== '') {
+      if (val == expected) borderClass = ' entered-match';
+      else if (val == 0) borderClass = ' entered-zero';
+      else borderClass = ' entered-mismatch';
+    }
+
+    const card = document.createElement('div');
+    card.className = 'instrument-card' + borderClass;
+    card.id = 'card-' + inst.id;
+
+    // Fix #11: Color-blind friendly indicators
+    let indicatorContent = '';
+    if (val === '') indicatorContent = '\u25CB'; // pending: gray circle
+    else if (val == expected) indicatorContent = '\u2713'; // match: checkmark
+    else if (val == 0) indicatorContent = '\u2014'; // zero: dash
+    else indicatorContent = '\u26A0'; // mismatch: warning
+
+    card.innerHTML = `
+      <div class="instrument-info">
+        <div class="instrument-name">${inst.name}</div>
+        <div class="instrument-expected">Expected: ${expected}</div>
+      </div>
+      <div class="stepper">
+        <button onclick="stepValue(${inst.id}, -1)" aria-label="Decrease">&minus;</button>
+        <input type="number" class="stepper-value" id="tally-${inst.id}"
+               value="${val}" min="0" max="${expected}"
+               data-inst="${inst.id}" data-max="${expected}"
+               inputmode="numeric" readonly>
+        <button onclick="stepValue(${inst.id}, 1)" aria-label="Increase">&plus;</button>
+      </div>
+      <div class="match-indicator ${val === '' ? 'pending' : (val == expected ? 'match' : (val == 0 ? 'zero' : 'mismatch'))}" id="dot-${inst.id}">${indicatorContent}</div>
+    `;
+    list.appendChild(card);
+  });
+
+  updateTallyTotal();
+}
+
+// Fix #10: Haptic feedback
+window.stepValue = function(instId, delta) {
+  if (navigator.vibrate) navigator.vibrate(10);
+  const inp = $('tally-' + instId);
+  const max = parseInt(inp.dataset.max);
+  let val = parseInt(inp.value);
+  if (isNaN(val)) val = 0;
+  val = Math.max(0, Math.min(max, val + delta));
+  inp.value = val;
+  state.tallies[instId] = val;
+  state.hasDataEntered = true;
+  updateDot(instId, val, max);
+  updateCardBorder(instId, val, max);
+  updateTallyTotal();
+};
+
+function updateDot(instId, val, max) {
+  const dot = $('dot-' + instId);
+  // Fix #11: Color-blind friendly icons
+  let cls, content;
+  if (val === '') { cls = 'pending'; content = '\u25CB'; }
+  else if (val == max) { cls = 'match'; content = '\u2713'; }
+  else if (val == 0) { cls = 'zero'; content = '\u2014'; }
+  else { cls = 'mismatch'; content = '\u26A0'; }
+  dot.className = 'match-indicator ' + cls;
+  dot.textContent = content;
+}
+
+// Fix #6: Update card border
+function updateCardBorder(instId, val, max) {
+  const card = $('card-' + instId);
+  card.classList.remove('entered-match', 'entered-mismatch', 'entered-zero');
+  if (val !== '' && val !== undefined) {
+    if (val == max) card.classList.add('entered-match');
+    else if (val == 0) card.classList.add('entered-zero');
+    else card.classList.add('entered-mismatch');
+  }
+}
+
+function updateTallyTotal() {
+  let total = 0;
+  let filledCount = 0;
+  state.instruments.forEach(inst => {
+    if (state.tallies[inst.id] !== undefined) {
+      filledCount++;
+      total += state.tallies[inst.id];
+    }
+  });
+  $('tallyTotal').textContent = total;
+  // Fix #6: Show entered count
+  $('tallyEnteredCount').textContent = `${filledCount} of ${state.instruments.length} entered`;
+  $('nextBtn').disabled = filledCount < state.instruments.length;
+}
+
+// Fix #6: Scroll to first unfilled on Next tap when unfilled exist
+const origGoToResolve = function() {
+  // Check if all instruments are filled
+  const unfilled = state.instruments.find(inst => state.tallies[inst.id] === undefined);
+  if (unfilled) {
+    const card = $('card-' + unfilled.id);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const resolveList = $('resolveList');
+  resolveList.innerHTML = '';
+  const autoInfo = $('autoResolvedInfo');
+  autoInfo.innerHTML = '';
+
+  let autoMatchCount = 0;
+  let autoAbsentCount = 0;
+  state.mismatchInstruments = [];
+
+  state.instruments.forEach(inst => {
+    const studs = state.students.filter(s => s.instrument_id === inst.id);
+    const expected = studs.length;
+    const count = state.tallies[inst.id] || 0;
+
+    if (count === expected) {
+      // Fix #7: Only auto-resolve if no manual data exists for this instrument
+      const hasManualData = studs.some(s => state.attendance[s.id] !== undefined);
+      if (!hasManualData || state.tallies[inst.id] === expected) {
+        studs.forEach(s => state.attendance[s.id] = true);
+      }
+      autoMatchCount++;
+    } else if (count === 0) {
+      const hasManualData = studs.some(s => state.attendance[s.id] !== undefined);
+      if (!hasManualData) {
+        studs.forEach(s => state.attendance[s.id] = false);
+      }
+      autoAbsentCount++;
+    } else {
+      // Mismatch - need resolution
+      // Fix #7: Only clear attendance for this group if no manual data exists
+      const hasManualData = studs.some(s => state.attendance[s.id] !== undefined);
+      if (!hasManualData) {
+        studs.forEach(s => state.attendance[s.id] = false);
+      }
+      state.mismatchInstruments.push({ inst, studs, count });
+    }
+  });
+
+  // Show auto-resolved info
+  if (autoMatchCount > 0 || autoAbsentCount > 0) {
+    let msgs = [];
+    if (autoMatchCount > 0) msgs.push(`${autoMatchCount} instrument(s) all present`);
+    if (autoAbsentCount > 0) msgs.push(`${autoAbsentCount} instrument(s) all absent`);
+    autoInfo.innerHTML = `<div class="auto-resolved-note">&#10003; Auto-resolved: ${msgs.join(', ')}</div>`;
+  }
+
+  if (state.mismatchInstruments.length === 0) {
+    $('resolveProgress').textContent = 'All sections resolved automatically.';
+  } else {
+    $('resolveProgress').textContent = `${state.mismatchInstruments.length} section(s) need manual resolution`;
+  }
+
+  state.mismatchInstruments.forEach(({ inst, studs, count }) => {
+    const section = document.createElement('div');
+    section.className = 'resolve-section';
+
+    const checkedCount = studs.filter(s => state.attendance[s.id] === true).length;
+    section.innerHTML = `
+      <div class="resolve-header">
+        ${inst.name}
+        <small id="resolve-count-${inst.id}">${checkedCount} of ${count} selected (${studs.length} total)</small>
+      </div>
+      <div class="student-list" id="slist-${inst.id}"></div>
+    `;
+    resolveList.appendChild(section);
+
+    const slist = $('slist-' + inst.id);
+    studs.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'student-row' + (state.attendance[s.id] ? ' checked' : '');
+      row.innerHTML = `
+        <div class="checkbox">&#10003;</div>
+        <div class="student-name">${s.first_name} ${s.last_name}</div>
+        <div class="student-grade">${s.grade || '?'}</div>
+      `;
+      row.addEventListener('click', () => {
+        const isChecked = row.classList.toggle('checked');
+        state.attendance[s.id] = isChecked;
+        state.hasDataEntered = true;
+        updateResolveCount(inst.id, count, studs);
+        validateResolveScreen();
+      });
+      slist.appendChild(row);
+    });
+  });
+
+  // Fix #2: Initial validation
+  validateResolveScreen();
+  switchScreen(3);
+};
+window.goToResolve = origGoToResolve;
+
+function updateResolveCount(instId, target, studs) {
+  const checked = studs.filter(s => state.attendance[s.id] === true).length;
+  const el = $('resolve-count-' + instId);
+  if (el) {
+    el.textContent = `${checked} of ${target} selected (${studs.length} total)`;
+    el.style.color = checked === target ? 'var(--green-600)' : '';
+  }
+}
+
+// Fix #2: Validate resolve screen — disable submit until all mismatch sections resolved
+function validateResolveScreen() {
+  const validationEl = $('resolveValidation');
+  const submitBtn = $('submitBtn');
+
+  if (state.mismatchInstruments.length === 0) {
+    validationEl.className = 'resolve-validation resolved';
+    validationEl.textContent = 'All sections resolved';
+    submitBtn.disabled = false;
+    return;
+  }
+
+  let unresolvedCount = 0;
+  state.mismatchInstruments.forEach(({ inst, studs, count }) => {
+    const checked = studs.filter(s => state.attendance[s.id] === true).length;
+    if (checked !== count) unresolvedCount++;
+  });
+
+  if (unresolvedCount > 0) {
+    validationEl.className = 'resolve-validation pending';
+    validationEl.textContent = `${unresolvedCount} section(s) still need resolution`;
+    submitBtn.disabled = true;
+  } else {
+    validationEl.className = 'resolve-validation resolved';
+    validationEl.textContent = 'All sections resolved';
+    submitBtn.disabled = false;
+  }
+}
+
+// ---- Submit (Fix #3: save to localStorage on failure) ----
+window.submitAttendance = async function() {
+  showSpinner('Saving attendance...');
+
+  const records = state.students.map(s => ({
+    session_id: state.sessionId,
+    student_id: s.id,
+    present: !!state.attendance[s.id]
+  }));
+
+  try {
+    const { error } = await supabase
+      .from('attendance')
+      .upsert(records, { onConflict: 'session_id,student_id' });
+
+    if (error) throw error;
+
+    toast('Attendance saved successfully!', 'success');
+    state.hasDataEntered = false;
+    // Clear any pending data for this session
+    const dateStr = dateToISO(state.sessionDate);
+    const pendingKey = `pending_attendance_${dateStr}_${state.sessionType}`;
+    localStorage.removeItem(pendingKey);
+
+    renderSummary();
+    switchScreen(4);
+  } catch (e) {
+    // Save to localStorage for later retry
+    savePendingAttendance(records);
+    toast('Failed to save. Data saved locally for retry.', 'error');
+    console.error(e);
+  }
+
+  hideSpinner();
+};
+
+// ---- Screen 4: Summary ----
+function renderSummary() {
+  const presentCount = state.students.filter(s => state.attendance[s.id]).length;
+  $('summaryTotal').textContent = `${presentCount} / ${state.totalStudents}`;
+  $('summaryLabel').textContent = 'students present';
+
+  const bd = $('summaryBreakdown');
+  bd.innerHTML = '';
+  const absentListEl = $('absentList');
+  absentListEl.innerHTML = '';
+  let hasAbsent = false;
+
+  state.instruments.forEach(inst => {
+    const studs = state.students.filter(s => s.instrument_id === inst.id);
+    const present = studs.filter(s => state.attendance[s.id]).length;
+
+    const row = document.createElement('div');
+    row.className = 'summary-instrument';
+    row.innerHTML = `<div class="name">${inst.name}</div><div class="count">${present} / ${studs.length}</div>`;
+    bd.appendChild(row);
+
+    const absent = studs.filter(s => !state.attendance[s.id]);
+    if (absent.length > 0) {
+      hasAbsent = true;
+      const label = document.createElement('div');
+      label.className = 'absent-group-label';
+      label.textContent = inst.name;
+      absentListEl.appendChild(label);
+      absent.forEach(s => {
+        const n = document.createElement('div');
+        n.className = 'absent-name';
+        n.textContent = `${s.first_name} ${s.last_name}`;
+        absentListEl.appendChild(n);
+      });
+    }
+  });
+
+  $('absentCard').style.display = hasAbsent ? '' : 'none';
+}
+
+// Fix #4: Two edit buttons on summary screen
+window.goToEditCounts = function() {
+  switchScreen(2);
+};
+
+window.goToEditStudents = function() {
+  // Re-render the resolve screen with current state preserved
+  origGoToResolve();
+};
+
+window.goHome = function() {
+  state.existingSession = { id: state.sessionId };
+  state.hasDataEntered = false;
+  switchScreen(1);
+  checkExistingSession();
+};
+
+// ---- Navigation (Fix #1: confirm dialog on back) ----
+window.goBack = function() {
+  if ((state.currentScreen === 2 || state.currentScreen === 3) && hasUnsavedData()) {
+    if (!confirm('You have unsaved attendance data. Go back and lose changes?')) {
+      return;
+    }
+  }
+  if (state.currentScreen === 2) switchScreen(1);
+  else if (state.currentScreen === 3) switchScreen(2);
+  else if (state.currentScreen === 4) switchScreen(1);
+};
+
+// ---- Reports ----
+window.loadReport = async function() {
+  const year = parseInt($('reportYear').value);
+  const term = $('reportTerm').value;
+  const rc = $('reportContent');
+  rc.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-600);">Loading report...</div>';
+
+  try {
+    // Load sessions for filters
+    let sessQ = supabase.from('sessions').select('*').eq('year', year);
+    if (term) sessQ = sessQ.eq('term', parseInt(term));
+    const { data: sessions, error: sessErr } = await sessQ;
+    if (sessErr) throw sessErr;
+
+    if (!sessions || sessions.length === 0) {
+      rc.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-600);">No sessions found for this period.</div>';
+      return;
+    }
+
+    const sessionIds = sessions.map(s => s.id);
+
+    // Load attendance
+    const { data: attData, error: attErr } = await supabase
+      .from('attendance')
+      .select('session_id, student_id, present')
+      .in('session_id', sessionIds);
+    if (attErr) throw attErr;
+
+    // Load students and instruments
+    const [studRes, instRes] = await Promise.all([
+      supabase.from('students').select('*').eq('active', true).order('last_name'),
+      supabase.from('instruments').select('*').order('display_order')
+    ]);
+
+    const students = studRes.data || [];
+    const instruments = instRes.data || [];
+    const instMap = {};
+    instruments.forEach(i => instMap[i.id] = i.name);
+
+    const totalSessions = sessions.length;
+
+    // Student attendance
+    const studentAtt = {};
+    students.forEach(s => { studentAtt[s.id] = { student: s, attended: 0 }; });
+    (attData || []).forEach(a => {
+      if (a.present && studentAtt[a.student_id]) {
+        studentAtt[a.student_id].attended++;
+      }
+    });
+
+    const studentRows = Object.values(studentAtt)
+      .map(sa => ({
+        name: `${sa.student.first_name} ${sa.student.last_name}`,
+        instrument: instMap[sa.student.instrument_id] || '?',
+        attended: sa.attended,
+        total: totalSessions,
+        pct: totalSessions > 0 ? Math.round(sa.attended / totalSessions * 100) : 0
+      }))
+      .sort((a, b) => a.pct - b.pct);
+
+    // Instrument attendance
+    const instAtt = {};
+    instruments.forEach(inst => {
+      const studs = students.filter(s => s.instrument_id === inst.id);
+      const possible = studs.length * totalSessions;
+      let attended = 0;
+      studs.forEach(s => { attended += (studentAtt[s.id]?.attended || 0); });
+      instAtt[inst.id] = {
+        name: inst.name,
+        attended,
+        possible,
+        pct: possible > 0 ? Math.round(attended / possible * 100) : 0
+      };
+    });
+
+    const instRows = Object.values(instAtt).sort((a, b) => a.pct - b.pct);
+
+    function pctClass(p) { return p >= 80 ? 'pct-good' : p >= 50 ? 'pct-warn' : 'pct-bad'; }
+    function pctBar(p) { return `${p}%<span class="pct-bar"><span class="pct-bar-fill ${pctClass(p)}" style="width:${p}%"></span></span>`; }
+
+    let html = `<div class="report-section-header">By Instrument (${totalSessions} sessions)</div>`;
+    html += `<div class="table-wrap"><table class="report-table"><thead><tr><th>Instrument</th><th>Attendance</th><th>Rate</th></tr></thead><tbody>`;
+    instRows.forEach(r => {
+      html += `<tr><td>${r.name}</td><td>${r.attended}/${r.possible}</td><td>${pctBar(r.pct)}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    html += `<div class="report-section-header">By Student</div>`;
+    html += `<div class="table-wrap"><table class="report-table"><thead><tr><th>Student</th><th>Instrument</th><th>Attended</th><th>Rate</th></tr></thead><tbody>`;
+    studentRows.forEach(r => {
+      html += `<tr><td>${r.name}</td><td style="font-size:12px">${r.instrument}</td><td>${r.attended}/${r.total}</td><td>${pctBar(r.pct)}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    html += `<button class="btn btn-secondary" style="margin-top:16px;" onclick="exportCSV()">Export CSV</button>`;
+
+    // Store for CSV export
+    window._reportData = { studentRows, totalSessions, year, term };
+    rc.innerHTML = html;
+
+  } catch (e) {
+    rc.innerHTML = `<div style="color:var(--red-600);padding:12px;">Error: ${e.message}</div>`;
+    console.error(e);
+  }
+};
+
+window.exportCSV = function() {
+  const d = window._reportData;
+  if (!d) return;
+
+  let csv = 'Student Name,Instrument,Sessions Attended,Total Sessions,Attendance %\n';
+  d.studentRows.forEach(r => {
+    csv += `"${r.name}","${r.instrument}",${r.attended},${r.total},${r.pct}%\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `hnps-attendance-${d.year}${d.term ? '-term' + d.term : ''}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded', 'success');
+};
+
+// ---- Init ----
+initScreen1();
+</script>
+</body>
+</html>
