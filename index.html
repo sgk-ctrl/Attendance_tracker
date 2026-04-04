@@ -183,6 +183,30 @@ body {
   margin: 8px 0;
   color: var(--gray-900);
 }
+.date-tap-area {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--blue-50);
+  border: 2px dashed var(--blue-400);
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  margin: 12px 0 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.date-tap-area:active {
+  background: var(--blue-100);
+  border-color: var(--blue-600);
+}
+.date-tap-area .date-icon {
+  font-size: 20px;
+}
+.date-tap-area .date-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--blue-700);
+}
 .session-badge {
   display: inline-block;
   background: var(--blue-100);
@@ -859,9 +883,12 @@ select:focus-visible,
   <div id="attendanceTab">
     <div class="card date-display">
       <div class="day-name" id="dayName"></div>
-      <div class="full-date" id="fullDate" style="cursor:pointer;" onclick="$('datePicker').showPicker ? $('datePicker').showPicker() : $('datePicker').focus()"></div>
+      <div class="full-date" id="fullDate"></div>
+      <div class="date-tap-area" onclick="openDatePicker()">
+        <span class="date-icon">&#128197;</span>
+        <span class="date-text">Change Date</span>
+      </div>
       <input type="date" id="datePicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" onchange="onDateChange(this.value)">
-      <div style="font-size:13px;color:var(--blue-600);margin-top:4px;cursor:pointer;" onclick="$('datePicker').showPicker ? $('datePicker').showPicker() : $('datePicker').focus()">tap to change date</div>
       <div id="sessionPickerWrap" class="session-picker">
         <label for="sessionPicker">Select session:</label>
         <select id="sessionPicker" onchange="updateSessionType()">
@@ -999,13 +1026,19 @@ const state = {
 window.onerror = function(msg, source, lineno, colno, error) {
   console.error('Global error:', msg, source, lineno, colno, error);
   hideSpinner();
-  toast('Something went wrong. Please try again.', 'error');
-  return false;
+  // Only show toast for critical errors, not minor issues
+  if (String(msg).includes('fetch') || String(msg).includes('network') || String(msg).includes('Failed')) {
+    toast('A network error occurred. Please check your connection.', 'error');
+  }
+  return true;
 };
 window.onunhandledrejection = function(event) {
   console.error('Unhandled promise rejection:', event.reason);
   hideSpinner();
-  toast('A network or system error occurred. Please try again.', 'error');
+  const reason = String(event.reason?.message || event.reason || '');
+  if (reason.includes('fetch') || reason.includes('network') || reason.includes('Failed')) {
+    toast('A network error occurred. Please check your connection.', 'error');
+  }
 };
 
 // ---- Helpers ----
@@ -1169,10 +1202,10 @@ function initScreen1() {
     $('sessionPicker').value = 'monday_afternoon';
   }
 
-  checkExistingSession();
+  checkExistingSession().catch(e => console.warn('Session check failed:', e));
 
   // Fix #3: Check for pending attendance
-  checkPendingAttendance();
+  try { checkPendingAttendance(); } catch(e) { console.warn('Pending check failed:', e); }
 }
 
 async function checkExistingSession() {
@@ -1208,6 +1241,12 @@ async function checkExistingSession() {
 window.updateSessionType = function() {
   state.sessionType = $('sessionPicker').value;
   checkExistingSession();
+};
+
+window.openDatePicker = function() {
+  const dp = $('datePicker');
+  if (dp.showPicker) { dp.showPicker(); }
+  else { dp.focus(); dp.click(); }
 };
 
 window.onDateChange = function(val) {
