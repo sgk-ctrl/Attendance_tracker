@@ -444,6 +444,11 @@ body {
   border: 1px solid var(--gray-400);
 }
 .quick-none:active { background: var(--gray-400); color: var(--white); }
+.resolve-quick-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
 .stepper {
   display: flex;
   align-items: center;
@@ -541,6 +546,10 @@ body {
   padding: 14px 16px;
   font-weight: 700;
   color: var(--blue-800);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 15px;
 }
 .resolve-header small {
@@ -1816,8 +1825,14 @@ const origGoToResolve = function() {
     const checkedCount = studs.filter(s => state.attendance[s.id] === true).length;
     section.innerHTML = `
       <div class="resolve-header">
-        ${inst.name}
-        <small id="resolve-count-${inst.id}">${checkedCount} of ${count} selected (${studs.length} total)</small>
+        <div>
+          ${inst.name}
+          <small id="resolve-count-${inst.id}">${checkedCount} of ${count} selected (${studs.length} total)</small>
+        </div>
+        <div class="resolve-quick-btns">
+          <button class="quick-btn quick-all" onclick="resolveSelectAll(${inst.id}, true)">Select All</button>
+          <button class="quick-btn quick-none" onclick="resolveSelectAll(${inst.id}, false)">Deselect All</button>
+        </div>
       </div>
       <div class="student-list" id="slist-${inst.id}"></div>
     `;
@@ -1857,6 +1872,25 @@ const origGoToResolve = function() {
   switchScreen(3);
 };
 window.goToResolve = origGoToResolve;
+
+window.resolveSelectAll = function(instId, selectAll) {
+  const match = state.mismatchInstruments.find(m => m.inst.id === instId);
+  if (!match) return;
+  const { studs, count } = match;
+  const slist = $('slist-' + instId);
+  if (!slist) return;
+  const rows = slist.querySelectorAll('.student-row');
+  studs.forEach((s, i) => {
+    state.attendance[s.id] = selectAll;
+    if (rows[i]) {
+      rows[i].classList.toggle('checked', selectAll);
+      rows[i].setAttribute('aria-checked', String(selectAll));
+    }
+  });
+  state.hasDataEntered = true;
+  updateResolveCount(instId, count, studs);
+  validateResolveScreen();
+};
 
 function updateResolveCount(instId, target, studs) {
   const checked = studs.filter(s => state.attendance[s.id] === true).length;
