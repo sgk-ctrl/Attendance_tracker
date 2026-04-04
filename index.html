@@ -1612,7 +1612,8 @@ function renderTallyScreen() {
         <input type="number" class="stepper-value" id="tally-${inst.id}"
                value="${val}" min="0" max="${expected}"
                data-inst="${inst.id}" data-max="${expected}"
-               inputmode="numeric" readonly
+               inputmode="numeric"
+               oninput="onTallyInput(${inst.id})"
                aria-label="${inst.name} student count">
         <button onclick="stepValue(${inst.id}, 1)" aria-label="Increase ${inst.name} count">&plus;</button>
       </div>
@@ -1639,6 +1640,25 @@ window.stepValue = function(instId, delta) {
   state.hasDataEntered = true;
   updateDot(instId, val, max);
   updateCardBorder(instId, val, max);
+  debouncedTallyUpdate();
+};
+
+window.onTallyInput = function(instId) {
+  const inp = $('tally-' + instId);
+  const max = parseInt(inp.dataset.max);
+  let val = parseInt(inp.value);
+  if (isNaN(val) || inp.value === '') {
+    delete state.tallies[instId];
+    updateDot(instId, '', max);
+    updateCardBorder(instId, '', max);
+  } else {
+    val = Math.max(0, Math.min(max, val));
+    inp.value = val;
+    state.tallies[instId] = val;
+    state.hasDataEntered = true;
+    updateDot(instId, val, max);
+    updateCardBorder(instId, val, max);
+  }
   debouncedTallyUpdate();
 };
 
