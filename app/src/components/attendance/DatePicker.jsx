@@ -17,23 +17,22 @@ export default function DatePicker({ date, onChange }) {
   };
 
   return (
-    <div className="text-center py-8 px-5">
+    <div className="text-center py-6 px-5">
       <div className="text-sm uppercase tracking-[1.5px] text-[var(--blue-600)] font-semibold">
         {dayName}
       </div>
       <div className="text-[28px] font-bold my-2 text-[var(--gray-900)]">
         {fullDate}
       </div>
-      <label className="relative overflow-hidden inline-flex items-center gap-2 bg-[var(--blue-50)] border-2 border-dashed border-[var(--blue-400)] rounded-lg py-3 px-5 mt-3 cursor-pointer transition-all duration-200 active:bg-[var(--blue-100)] active:border-[var(--blue-600)]">
-        <span className="text-xl">&#128197;</span>
-        <span className="text-sm font-semibold text-[var(--blue-700)]">Change Date</span>
+      <div className="mt-3">
         <input
           type="date"
           value={isoValue}
           onChange={handleChange}
-          className="date-input-native"
+          className="w-full max-w-[280px] mx-auto block px-4 py-3 text-base font-semibold text-center border-2 border-[var(--blue-500)] rounded-lg bg-white text-[var(--gray-900)] cursor-pointer"
+          style={{ fontSize: '16px' }}
         />
-      </label>
+      </div>
     </div>
   );
 }
