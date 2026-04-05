@@ -6,12 +6,12 @@ export default function ResolveSection({ instrument, students, targetCount, atte
 
   return (
     <div className="mb-6">
-      <div className="bg-[var(--blue-100)] rounded-t-lg px-4 py-3.5 font-bold text-[var(--blue-800)] flex justify-between items-start gap-2 text-[15px]">
+      <div className="bg-[var(--accent-blue-bg-strong)] border border-[var(--border-card)] rounded-t-lg px-4 py-3.5 font-bold text-[var(--accent-blue-light)] flex justify-between items-start gap-2 text-[15px]">
         <div>
           {instrument.name}
           <small
             className={`block font-medium text-[13px] mt-0.5 ${
-              isResolved ? 'text-[var(--green-600)]' : 'text-[var(--blue-600)]'
+              isResolved ? 'text-[var(--accent-green)]' : 'text-[var(--accent-blue-light)]'
             }`}
           >
             {checkedCount} of {targetCount} selected ({students.length} total)
@@ -19,20 +19,20 @@ export default function ResolveSection({ instrument, students, targetCount, atte
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
           <button
-            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--green-100)] text-[var(--green-600)] border-[var(--green-500)] active:bg-[var(--green-500)] active:text-white"
+            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--accent-green-bg)] text-[var(--accent-green)] border-[var(--accent-green-border)] active:bg-[var(--accent-green)] active:text-white"
             onClick={onSelectAll}
           >
             Select All
           </button>
           <button
-            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--gray-200)] text-[var(--gray-700)] border-[var(--gray-400)] active:bg-[var(--gray-400)] active:text-white"
+            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] active:bg-[var(--text-muted)] active:text-white"
             onClick={onDeselectAll}
           >
             Deselect All
           </button>
         </div>
       </div>
-      <div className="bg-white rounded-b-lg shadow-[var(--shadow)] overflow-hidden">
+      <div className="bg-[var(--bg-card)] rounded-b-lg shadow-[var(--shadow)] border border-t-0 border-[var(--border-card)] overflow-hidden">
         {students.map(s => (
           <StudentRow
             key={s.id}

@@ -27,11 +27,11 @@ export default function TermBadgeEditor({ term, year, onTermChange }) {
 
   return (
     <div className="mt-2">
-      <span className="inline-block bg-[var(--gray-200)] text-[var(--gray-700)] px-3.5 py-1.5 rounded-full text-[13px] font-medium">
+      <span className="inline-block bg-[var(--surface-elevated)] text-[var(--text-secondary)] px-3.5 py-1.5 rounded-full text-[13px] font-medium">
         Term {term}, {year}
       </span>
       <span
-        className="text-xs text-[var(--blue-600)] cursor-pointer ml-1.5 underline inline-block align-middle"
+        className="text-xs text-[var(--accent-blue-light)] cursor-pointer ml-1.5 underline inline-block align-middle"
         onClick={() => setEditing(true)}
       >
         edit

@@ -18,10 +18,10 @@ export default function DatePicker({ date, onChange }) {
 
   return (
     <div className="text-center py-6 px-5">
-      <div className="text-sm uppercase tracking-[1.5px] text-[var(--blue-600)] font-semibold">
+      <div className="text-sm uppercase tracking-[1.5px] text-[var(--accent-blue-light)] font-semibold">
         {dayName}
       </div>
-      <div className="text-[28px] font-bold my-2 text-[var(--gray-900)]">
+      <div className="text-[28px] font-bold my-2 text-[var(--text-primary)]">
         {fullDate}
       </div>
       <div className="mt-3">
@@ -29,7 +29,7 @@ export default function DatePicker({ date, onChange }) {
           type="date"
           value={isoValue}
           onChange={handleChange}
-          className="w-full max-w-[280px] mx-auto block px-4 py-3 text-base font-semibold text-center border-2 border-[var(--blue-500)] rounded-lg bg-white text-[var(--gray-900)] cursor-pointer"
+          className="w-full max-w-[280px] mx-auto block px-4 py-3 text-base font-semibold text-center border border-[var(--accent-blue-border)] rounded-lg bg-[var(--surface-input)] text-[var(--text-primary)] cursor-pointer"
           style={{ fontSize: '16px' }}
         />
       </div>

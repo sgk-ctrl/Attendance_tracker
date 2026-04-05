@@ -197,7 +197,7 @@ export default function AttendanceFlow() {
               </EmptyState>
             ) : (
               <>
-                <p className="text-sm text-[var(--gray-600)] mb-4">
+                <p className="text-sm text-[var(--text-secondary)] mb-4">
                   Enter the count of students present for each instrument section.
                 </p>
                 <div>
@@ -231,14 +231,14 @@ export default function AttendanceFlow() {
         {/* Step 2: Resolve */}
         {flow.step === 2 && (
           <div>
-            <div className="text-center text-sm text-[var(--gray-600)] mb-4 font-medium" aria-live="polite">
+            <div className="text-center text-sm text-[var(--text-secondary)] mb-4 font-medium" aria-live="polite">
               {flow.mismatchInstruments.length === 0
                 ? 'All sections resolved automatically.'
                 : `${flow.mismatchInstruments.length} section(s) need manual resolution`}
             </div>
 
             {flow.autoResolvedInfo && (
-              <div className="bg-[var(--green-100)] rounded-lg p-3 px-4 mb-3 text-sm text-[var(--green-600)] flex items-center gap-2">
+              <div className="bg-[var(--accent-green-bg)] border border-[var(--accent-green-border)] rounded-lg p-3 px-4 mb-3 text-sm text-[var(--accent-green)] flex items-center gap-2">
                 &#10003; Auto-resolved: {flow.autoResolvedInfo}
               </div>
             )}
@@ -260,8 +260,8 @@ export default function AttendanceFlow() {
               <div
                 className={`text-center text-sm font-semibold mb-3 p-2 px-3 rounded-lg ${
                   unresolvedCount > 0
-                    ? 'text-[var(--orange-500)] bg-[var(--orange-100)]'
-                    : 'text-[var(--green-600)] bg-[var(--green-100)]'
+                    ? 'text-[var(--accent-orange)] bg-[var(--accent-orange-bg)]'
+                    : 'text-[var(--accent-green)] bg-[var(--accent-green-bg)]'
                 }`}
               >
                 {unresolvedCount > 0

@@ -3,10 +3,10 @@ import PctBar from '../ui/PctBar';
 export default function StudentReport({ studentRows }) {
   return (
     <div>
-      <div className="font-bold text-[var(--gray-700)] my-5 text-[15px]">
+      <div className="font-bold text-[var(--text-secondary)] my-5 text-[15px]">
         By Student
       </div>
-      <div className="overflow-x-auto rounded-lg shadow-[var(--shadow)] -webkit-overflow-scrolling-touch">
+      <div className="overflow-x-auto rounded-lg shadow-[var(--shadow)] border border-[var(--border-card)] -webkit-overflow-scrolling-touch">
         <table className="report-table">
           <thead>
             <tr>

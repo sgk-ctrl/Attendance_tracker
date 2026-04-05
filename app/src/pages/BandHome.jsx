@@ -172,7 +172,7 @@ export default function BandHome() {
             {/* Pending sync banner */}
             {pendingKeys.length > 0 && pendingInfo && (
               <div
-                className="bg-[var(--orange-100)] border border-[var(--orange-500)] rounded-lg p-3.5 px-4 mb-4 flex items-center gap-2.5 text-sm text-[var(--gray-900)] cursor-pointer"
+                className="bg-[var(--accent-orange-bg)] border border-[var(--accent-orange-border)] rounded-lg p-3.5 px-4 mb-4 flex items-center gap-2.5 text-sm text-[var(--text-primary)] cursor-pointer"
                 onClick={handleRetrySync}
               >
                 <span className="text-lg flex-shrink-0">&#128260;</span>
@@ -224,7 +224,7 @@ export default function BandHome() {
         {/* Reports Tab */}
         {activeTab === 'reports' && (
           <Card>
-            <h3 className="mb-3 text-base font-bold">Attendance Reports</h3>
+            <h3 className="mb-3 text-base font-bold text-[var(--text-primary)]">Attendance Reports</h3>
             <ReportFilters
               year={reportYear}
               term={reportTerm}
@@ -236,13 +236,13 @@ export default function BandHome() {
             <Spinner show={reportLoading} text="Loading report..." />
 
             {reportError && (
-              <div className="text-[var(--red-600)] p-3 text-sm">
+              <div className="text-[var(--accent-red)] p-3 text-sm">
                 Error loading report: {reportError}
               </div>
             )}
 
             {reportData && reportData.empty && (
-              <div className="text-center p-5 text-[var(--gray-600)]">
+              <div className="text-center p-5 text-[var(--text-muted)]">
                 No sessions found for this period.
               </div>
             )}
@@ -270,9 +270,9 @@ export default function BandHome() {
         {activeTab === 'events' && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold">Events</h3>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">Events</h3>
               <button
-                className="bg-[var(--blue-600)] text-white border-none rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer"
+                className="bg-[var(--accent-blue)] text-white border-none rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer shadow-[var(--shadow-glow)]"
                 onClick={() => setShowAddEvent(!showAddEvent)}
               >
                 {showAddEvent ? 'Cancel' : '+ Add Event'}
@@ -287,39 +287,39 @@ export default function BandHome() {
                     placeholder="Event name *"
                     value={newEvent.name}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
                   />
                   <input
                     type="text"
                     placeholder="Event type (e.g. Concert, Rehearsal)"
                     value={newEvent.event_type}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, event_type: e.target.value }))}
-                    className="w-full px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
                   />
                   <input
                     type="date"
                     value={newEvent.event_date}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, event_date: e.target.value }))}
-                    className="w-full px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)]"
                   />
                   <input
                     type="time"
                     value={newEvent.event_time}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, event_time: e.target.value }))}
-                    className="w-full px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)]"
                   />
                   <input
                     type="text"
                     placeholder="Venue"
                     value={newEvent.venue}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, venue: e.target.value }))}
-                    className="w-full px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
                   />
                   <textarea
                     placeholder="Notes"
                     value={newEvent.notes}
                     onChange={(e) => setNewEvent(prev => ({ ...prev, notes: e.target.value }))}
-                    className="w-full px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm"
+                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
                     rows={2}
                   />
                   <Button onClick={handleCreateEvent}>Create Event</Button>

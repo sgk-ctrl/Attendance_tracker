@@ -1,7 +1,7 @@
 const variants = {
-  primary: 'bg-gradient-to-br from-[var(--blue-600)] to-[var(--blue-700)] text-white shadow-[var(--shadow-md)] active:scale-[0.98] active:shadow-[var(--shadow-sm)]',
-  secondary: 'bg-white text-[var(--blue-700)] border-2 border-[var(--blue-600)]',
-  success: 'bg-gradient-to-br from-[var(--green-500)] to-[var(--green-600)] text-white shadow-[var(--shadow-md)] active:scale-[0.98]',
+  primary: 'bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-blue-dark)] text-white shadow-[var(--shadow-glow)] active:scale-[0.98] active:shadow-[var(--shadow-sm)]',
+  secondary: 'bg-transparent text-[#93c5fd] border border-[var(--accent-blue-border)]',
+  success: 'bg-gradient-to-br from-[var(--accent-green)] to-[var(--accent-green-dark)] text-white shadow-[var(--shadow-md)] active:scale-[0.98]',
 };
 
 export default function Button({ children, variant = 'primary', className = '', disabled, onClick, type = 'button' }) {

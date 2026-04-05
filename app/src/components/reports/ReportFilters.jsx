@@ -8,7 +8,7 @@ export default function ReportFilters({ year, term, onYearChange, onTermChange, 
         <select
           value={year}
           onChange={(e) => onYearChange(parseInt(e.target.value))}
-          className="flex-1 min-w-[120px] px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm bg-white"
+          className="flex-1 min-w-[120px] px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)]"
         >
           {REPORT_YEARS.map(y => (
             <option key={y} value={y}>{y}</option>
@@ -17,7 +17,7 @@ export default function ReportFilters({ year, term, onYearChange, onTermChange, 
         <select
           value={term}
           onChange={(e) => onTermChange(e.target.value)}
-          className="flex-1 min-w-[120px] px-3 py-2.5 border-2 border-[var(--gray-300)] rounded-lg text-sm bg-white"
+          className="flex-1 min-w-[120px] px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)]"
         >
           <option value="">All Terms</option>
           <option value="1">Term 1</option>

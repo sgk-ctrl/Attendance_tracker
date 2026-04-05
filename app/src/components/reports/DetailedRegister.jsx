@@ -4,14 +4,14 @@ import { pctClass } from '../../lib/utils';
 export default function DetailedRegister({ sortedSessions, registerByInst, attMap, totalSessions }) {
   return (
     <div>
-      <div className="font-bold text-[var(--gray-700)] my-5 text-[15px]">
+      <div className="font-bold text-[var(--text-secondary)] my-5 text-[15px]">
         Detailed Attendance Register
       </div>
-      <div className="overflow-x-auto rounded-lg shadow-[var(--shadow)] -webkit-overflow-scrolling-touch">
+      <div className="overflow-x-auto rounded-lg shadow-[var(--shadow)] border border-[var(--border-card)] -webkit-overflow-scrolling-touch">
         <table className="report-table register-table">
           <thead>
             <tr>
-              <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 2 }}>Student</th>
+              <th style={{ position: 'sticky', left: 0, background: 'var(--bg-secondary)', zIndex: 2 }}>Student</th>
               {sortedSessions.map(sess => {
                 const d = new Date(sess.session_date + 'T00:00:00');
                 const day = d.getDate();
@@ -54,7 +54,7 @@ function RegisterInstrumentGroup({ inst, studs, sortedSessions, attMap, totalSes
       <tr className="inst-group-row">
         <td
           colSpan={sortedSessions.length + 3}
-          style={{ position: 'sticky', left: 0, background: 'var(--blue-100)', fontWeight: 700, color: 'var(--blue-800)' }}
+          style={{ position: 'sticky', left: 0, background: 'var(--accent-blue-bg-strong)', fontWeight: 700, color: 'var(--accent-blue-light)' }}
         >
           {inst.name} ({studs.length})
         </td>
@@ -63,7 +63,7 @@ function RegisterInstrumentGroup({ inst, studs, sortedSessions, attMap, totalSes
         let attended = 0;
         return (
           <tr key={s.id}>
-            <td style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1, whiteSpace: 'nowrap' }}>
+            <td style={{ position: 'sticky', left: 0, background: 'var(--bg-secondary)', zIndex: 1, whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
               {s.first_name} {s.last_name}
             </td>
             {sortedSessions.map(sess => {
@@ -77,15 +77,15 @@ function RegisterInstrumentGroup({ inst, studs, sortedSessions, attMap, totalSes
               }
               return <td key={sess.id} className="att-none">-</td>;
             })}
-            <td style={{ fontWeight: 600 }}>{attended}/{totalSessions}</td>
+            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{attended}/{totalSessions}</td>
             <td
               style={{ fontWeight: 600 }}
               className={
                 pctClass(totalSessions > 0 ? Math.round(attended / totalSessions * 100) : 0) === 'pct-good'
-                  ? 'text-[var(--green-600)]'
+                  ? 'text-[var(--accent-green)]'
                   : pctClass(totalSessions > 0 ? Math.round(attended / totalSessions * 100) : 0) === 'pct-warn'
-                    ? 'text-[var(--orange-500)]'
-                    : 'text-[var(--red-600)]'
+                    ? 'text-[var(--accent-orange)]'
+                    : 'text-[var(--accent-red)]'
               }
             >
               {totalSessions > 0 ? Math.round(attended / totalSessions * 100) : 0}%

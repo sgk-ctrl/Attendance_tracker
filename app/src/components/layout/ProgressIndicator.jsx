@@ -11,11 +11,11 @@ export default function ProgressIndicator({ currentStep }) {
         const stepNum = i + 1;
         let cls = 'w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 ';
         if (stepNum < current || currentStep === 3) {
-          cls += 'bg-[var(--green-500)] text-white';
+          cls += 'bg-[var(--accent-green)] text-white';
         } else if (stepNum === current) {
-          cls += 'bg-[var(--blue-600)] text-white';
+          cls += 'bg-[var(--accent-blue)] text-white';
         } else {
-          cls += 'bg-[var(--gray-300)] text-[var(--gray-600)]';
+          cls += 'bg-[rgba(148,163,184,0.15)] text-[var(--text-muted)]';
         }
 
         return (
@@ -25,8 +25,8 @@ export default function ProgressIndicator({ currentStep }) {
               <div
                 className={`h-0.5 w-8 flex-shrink-0 ${
                   stepNum < current || currentStep === 3
-                    ? 'bg-[var(--green-500)]'
-                    : 'bg-[var(--gray-300)]'
+                    ? 'bg-[var(--accent-green)]'
+                    : 'bg-[rgba(148,163,184,0.15)]'
                 }`}
               />
             )}

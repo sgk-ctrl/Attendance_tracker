@@ -69,14 +69,14 @@ export default function EventAttendance() {
           <>
             {event && (
               <div className="mb-4 text-center">
-                <div className="text-sm text-[var(--gray-600)]">
+                <div className="text-sm text-[var(--text-muted)]">
                   {event.event_date} {event.event_time && `at ${event.event_time}`}
                   {event.venue && ` - ${event.venue}`}
                 </div>
               </div>
             )}
 
-            <p className="text-sm text-[var(--gray-600)] mb-4">
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
               Tap students to mark them present.
             </p>
 

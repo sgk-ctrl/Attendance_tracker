@@ -2,44 +2,49 @@
 
 /* ---- Custom Properties ---- */
 :root {
-  --blue-900: #1a365d;
-  --blue-800: #1e3a5f;
-  --blue-700: #2b6cb0;
-  --blue-600: #3182ce;
-  --blue-500: #4299e1;
-  --blue-400: #63b3ed;
-  --blue-100: #ebf8ff;
-  --blue-50: #f0f7ff;
-  --gray-900: #1a202c;
-  --gray-700: #4a5568;
-  --gray-600: #718096;
-  --gray-400: #cbd5e0;
-  --gray-300: #e2e8f0;
-  --gray-200: #edf2f7;
-  --gray-100: #f7fafc;
-  --gray-50: #fafbfc;
-  --green-500: #48bb78;
-  --green-600: #38a169;
-  --green-100: #f0fff4;
-  --red-500: #f56565;
-  --red-600: #e53e3e;
-  --red-100: #fff5f5;
-  --orange-500: #ed8936;
-  --orange-100: #fffaf0;
-  --white: #ffffff;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
-  --radius: 12px;
+  --bg-primary: #0a0f1a;
+  --bg-secondary: #111827;
+  --bg-card: rgba(17, 24, 39, 0.8);
+  --bg-card-solid: #111827;
+  --border-card: rgba(59, 130, 246, 0.15);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #3b82f6;
+  --accent-blue-light: #60a5fa;
+  --accent-blue-dark: #2563eb;
+  --accent-blue-glow: rgba(59, 130, 246, 0.2);
+  --accent-blue-border: rgba(59, 130, 246, 0.3);
+  --accent-blue-bg: rgba(59, 130, 246, 0.1);
+  --accent-blue-bg-strong: rgba(59, 130, 246, 0.15);
+  --accent-green: #22c55e;
+  --accent-green-dark: #16a34a;
+  --accent-green-bg: rgba(34, 197, 94, 0.1);
+  --accent-green-border: rgba(34, 197, 94, 0.3);
+  --accent-red: #ef4444;
+  --accent-red-dark: #dc2626;
+  --accent-red-bg: rgba(239, 68, 68, 0.1);
+  --accent-red-border: rgba(239, 68, 68, 0.3);
+  --accent-orange: #f59e0b;
+  --accent-orange-bg: rgba(245, 158, 11, 0.1);
+  --accent-orange-border: rgba(245, 158, 11, 0.3);
+  --surface-input: rgba(15, 23, 42, 0.8);
+  --surface-elevated: rgba(30, 41, 59, 0.6);
+  --border-subtle: rgba(148, 163, 184, 0.1);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+  --radius: 16px;
   --radius-sm: 8px;
   --transition: 0.2s ease;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: var(--gray-100);
-  color: var(--gray-900);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
   margin: 0;
@@ -79,9 +84,9 @@ body {
 .stepper button {
   width: 48px;
   height: 48px;
-  border: 2px solid var(--blue-500);
-  background: var(--blue-50);
-  color: var(--blue-700);
+  border: 1px solid var(--accent-blue-border);
+  background: var(--accent-blue-bg);
+  color: var(--accent-blue-light);
   font-size: 22px;
   font-weight: 700;
   cursor: pointer;
@@ -95,20 +100,20 @@ body {
 .stepper button:first-child { border-radius: 10px 0 0 10px; }
 .stepper button:last-child { border-radius: 0 10px 10px 0; }
 .stepper button:active {
-  background: var(--blue-500);
-  color: var(--white);
+  background: var(--accent-blue);
+  color: white;
 }
 .stepper-value {
   width: 52px;
   height: 48px;
-  border: 2px solid var(--blue-500);
+  border: 1px solid var(--accent-blue-border);
   border-left: none;
   border-right: none;
-  background: var(--white);
+  background: var(--surface-input);
   font-size: 20px;
   font-weight: 700;
   text-align: center;
-  color: var(--gray-900);
+  color: var(--text-primary);
   -moz-appearance: textfield;
 }
 .stepper-value::-webkit-outer-spin-button,
@@ -128,24 +133,24 @@ body {
   text-align: center;
   font-weight: 700;
 }
-.match-indicator.match { color: var(--green-500); }
-.match-indicator.mismatch { color: var(--orange-500); }
-.match-indicator.zero { color: var(--red-500); }
-.match-indicator.pending { color: var(--gray-400); }
+.match-indicator.match { color: var(--accent-green); }
+.match-indicator.mismatch { color: var(--accent-orange); }
+.match-indicator.zero { color: var(--accent-red); }
+.match-indicator.pending { color: #475569; }
 
 /* ---- Instrument Card Borders ---- */
 .instrument-card {
-  border-left: 3px dashed var(--gray-400);
+  border-left: 3px dashed #475569;
   transition: border-left var(--transition);
 }
 .instrument-card.entered-match {
-  border-left: 3px solid var(--green-500);
+  border-left: 3px solid var(--accent-green);
 }
 .instrument-card.entered-mismatch {
-  border-left: 3px solid var(--orange-500);
+  border-left: 3px solid var(--accent-orange);
 }
 .instrument-card.entered-zero {
-  border-left: 3px solid var(--red-500);
+  border-left: 3px solid var(--accent-red);
 }
 
 /* ---- Student Row ---- */
@@ -153,21 +158,22 @@ body {
   display: flex;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--border-subtle);
   cursor: pointer;
   transition: background var(--transition);
   user-select: none;
   -webkit-user-select: none;
   gap: 12px;
   min-height: 52px;
+  color: var(--text-primary);
 }
 .student-row:last-child { border-bottom: none; }
-.student-row:active { background: var(--blue-50); }
+.student-row:active { background: var(--accent-blue-bg); }
 
 /* ---- Percentage Bar ---- */
 .pct-bar {
   height: 6px;
-  background: var(--gray-200);
+  background: rgba(148, 163, 184, 0.15);
   border-radius: 3px;
   overflow: hidden;
   width: 60px;
@@ -188,11 +194,11 @@ body {
   font-size: 13px;
 }
 .report-table th {
-  background: var(--blue-100);
+  background: rgba(59, 130, 246, 0.12);
   padding: 10px 8px;
   text-align: left;
   font-weight: 700;
-  color: var(--blue-800);
+  color: var(--accent-blue-light);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -201,9 +207,12 @@ body {
 }
 .report-table td {
   padding: 8px;
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
-.report-table tr:hover td { background: var(--gray-50); }
+.report-table tr:nth-child(even) td { background: rgba(15, 23, 42, 0.4); }
+.report-table tr:nth-child(odd) td { background: rgba(17, 24, 39, 0.6); }
+.report-table tr:hover td { background: rgba(59, 130, 246, 0.05); }
 
 .register-table th.session-col {
   font-size: 11px;
@@ -214,26 +223,26 @@ body {
 }
 .session-type-label {
   font-size: 9px;
-  color: var(--gray-600);
+  color: var(--text-muted);
   font-weight: 500;
 }
 .att-present {
   text-align: center;
-  color: var(--green-600);
+  color: var(--accent-green);
   font-weight: 700;
   font-size: 13px;
-  background: var(--green-100);
+  background: var(--accent-green-bg) !important;
 }
 .att-absent {
   text-align: center;
-  color: var(--red-600);
+  color: var(--accent-red);
   font-weight: 700;
   font-size: 13px;
-  background: var(--red-100);
+  background: var(--accent-red-bg) !important;
 }
 .att-none {
   text-align: center;
-  color: var(--gray-400);
+  color: #475569;
   font-size: 13px;
 }
 .inst-group-row td {
@@ -246,6 +255,7 @@ body {
   animation: toastIn 0.3s ease;
   pointer-events: auto;
   cursor: pointer;
+  backdrop-filter: blur(10px);
 }
 .toast.exiting {
   animation: toastOut 0.3s ease forwards;
@@ -255,8 +265,8 @@ body {
 .spinner-circle {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--gray-300);
-  border-top-color: var(--blue-600);
+  border: 4px solid rgba(148, 163, 184, 0.15);
+  border-top-color: var(--accent-blue);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -276,16 +286,16 @@ body {
 /* ---- Term Override ---- */
 .term-override-select {
   padding: 6px 10px;
-  border: 2px solid var(--blue-500);
+  border: 1px solid var(--accent-blue-border);
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
-  background: var(--white);
-  color: var(--gray-700);
+  background: var(--surface-input);
+  color: var(--text-secondary);
   margin-top: 8px;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%234a5568' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2394a3b8' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   padding-right: 26px;
@@ -294,12 +304,12 @@ body {
 /* ---- Time Picker ---- */
 .time-picker-row select {
   padding: 12px 14px;
-  border: 2px solid var(--blue-500);
+  border: 1px solid var(--accent-blue-border);
   border-radius: var(--radius-sm);
   font-size: 18px;
   font-weight: 600;
-  background: var(--white);
-  color: var(--gray-900);
+  background: var(--surface-input);
+  color: var(--text-primary);
   text-align: center;
   min-width: 60px;
 }
@@ -309,7 +319,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 .student-row:focus-visible {
-  outline: 3px solid var(--blue-500);
+  outline: 3px solid var(--accent-blue);
   outline-offset: 2px;
 }
 

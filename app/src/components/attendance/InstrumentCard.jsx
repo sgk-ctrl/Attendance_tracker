@@ -34,19 +34,19 @@ export default function InstrumentCard({ instrument, expected, value, onValueCha
   };
 
   return (
-    <div className={`${borderClass} bg-white rounded-xl p-4 mb-3 shadow-[var(--shadow)] flex items-center justify-between gap-3`}>
+    <div className={`${borderClass} bg-[var(--bg-card)] rounded-[16px] p-4 mb-3 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px] flex items-center justify-between gap-3`}>
       <div className="flex-1 min-w-0">
-        <div className="text-base font-bold text-[#1a202c]">{instrument.name}</div>
-        <div className="text-[13px] text-[#4a5568] mt-0.5">Expected: {expected}</div>
+        <div className="text-base font-bold text-[var(--text-primary)]">{instrument.name}</div>
+        <div className="text-[13px] text-[var(--text-secondary)] mt-0.5">Expected: {expected}</div>
         <div className="flex gap-1.5 mt-1.5">
           <button
-            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--green-100)] text-[var(--green-600)] border-[var(--green-500)] active:bg-[var(--green-500)] active:text-white"
+            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--accent-green-bg)] text-[var(--accent-green)] border-[var(--accent-green-border)] active:bg-[var(--accent-green)] active:text-white"
             onClick={handleAll}
           >
             All ({expected})
           </button>
           <button
-            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--gray-200)] text-[var(--gray-700)] border-[var(--gray-400)] active:bg-[var(--gray-400)] active:text-white"
+            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] active:bg-[var(--text-muted)] active:text-white"
             onClick={handleNone}
           >
             None

@@ -95,27 +95,27 @@ export default function Dashboard() {
                 onClick={() => navigate(`/band/${band.id}`)}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-bold" style={{ color: band.color || 'var(--gray-900)' }}>
+                  <h3 className="text-base font-bold" style={{ color: band.color || 'var(--text-primary)' }}>
                     {band.name}
                   </h3>
                   {band.short_name && (
-                    <span className="text-xs text-[var(--gray-600)]">{band.short_name}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{band.short_name}</span>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <div className="text-2xl font-bold text-[var(--blue-700)]">{s.sessionCount || 0}</div>
-                    <div className="text-xs text-[var(--gray-600)]">Sessions</div>
+                    <div className="text-2xl font-bold text-[var(--accent-blue-light)]">{s.sessionCount || 0}</div>
+                    <div className="text-xs text-[var(--text-muted)]">Sessions</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-[var(--blue-700)]">{s.studentCount || 0}</div>
-                    <div className="text-xs text-[var(--gray-600)]">Students</div>
+                    <div className="text-2xl font-bold text-[var(--accent-blue-light)]">{s.studentCount || 0}</div>
+                    <div className="text-xs text-[var(--text-muted)]">Students</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold">
                       <PctBar pct={s.avgRate || 0} />
                     </div>
-                    <div className="text-xs text-[var(--gray-600)]">Avg Rate</div>
+                    <div className="text-xs text-[var(--text-muted)]">Avg Rate</div>
                   </div>
                 </div>
               </div>

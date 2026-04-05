@@ -2,7 +2,7 @@ import StudentRow from '../attendance/StudentRow';
 
 export default function StudentCheckList({ students, attendance, onToggle }) {
   return (
-    <div className="bg-white rounded-xl shadow-[var(--shadow)] overflow-hidden">
+    <div className="bg-[var(--bg-card)] rounded-[16px] shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px] overflow-hidden">
       {students.map(s => (
         <StudentRow
           key={s.id}

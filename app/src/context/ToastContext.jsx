@@ -45,10 +45,10 @@ function ToastContainer({ toasts, onDismiss }) {
       {toasts.map(t => (
         <div
           key={t.id}
-          className={`toast rounded-lg px-4 py-3 text-sm font-medium shadow-lg text-white ${
-            t.type === 'error' ? 'bg-[var(--red-600)]' :
-            t.type === 'success' ? 'bg-[var(--green-600)]' :
-            'bg-[var(--gray-900)]'
+          className={`toast rounded-lg px-4 py-3 text-sm font-medium shadow-lg text-white backdrop-blur-[10px] ${
+            t.type === 'error' ? 'bg-[rgba(220,38,38,0.9)] border border-[var(--accent-red-border)]' :
+            t.type === 'success' ? 'bg-[rgba(22,163,74,0.9)] border border-[var(--accent-green-border)]' :
+            'bg-[rgba(30,41,59,0.95)] border border-[var(--border-subtle)]'
           }`}
           onClick={() => onDismiss(t.id)}
         >
