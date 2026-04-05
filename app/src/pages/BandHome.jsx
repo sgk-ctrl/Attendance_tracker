@@ -17,8 +17,6 @@ import DatePickerComp from '../components/attendance/DatePicker';
 import TimePicker from '../components/attendance/TimePicker';
 import TermBadgeEditor from '../components/attendance/TermBadge';
 import ReportFilters from '../components/reports/ReportFilters';
-import InstrumentReport from '../components/reports/InstrumentReport';
-import StudentReport from '../components/reports/StudentReport';
 import DetailedRegister from '../components/reports/DetailedRegister';
 import ExportButtons from '../components/reports/ExportButtons';
 import EventCard from '../components/events/EventCard';
@@ -202,20 +200,28 @@ export default function BandHome() {
               </WarningBanner>
             )}
 
-            <Button
-              onClick={handleStart}
-              className="mt-5"
-            >
-              {existingSession ? 'Start New Attendance' : 'Start Attendance'}
-            </Button>
-
-            {existingSession && (
+            {existingSession ? (
+              <>
+                <Button
+                  onClick={handleEdit}
+                  className="mt-5"
+                >
+                  View / Edit Existing
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleStart}
+                  className="mt-3"
+                >
+                  Start New Attendance
+                </Button>
+              </>
+            ) : (
               <Button
-                variant="secondary"
-                onClick={handleEdit}
-                className="mt-3"
+                onClick={handleStart}
+                className="mt-5"
               >
-                View / Edit Existing
+                Start Attendance
               </Button>
             )}
           </div>
@@ -249,8 +255,6 @@ export default function BandHome() {
 
             {reportData && !reportData.empty && (
               <>
-                <InstrumentReport instRows={reportData.instRows} totalSessions={reportData.totalSessions} />
-                <StudentReport studentRows={reportData.studentRows} />
                 <DetailedRegister
                   sortedSessions={reportData.sortedSessions}
                   registerByInst={reportData.registerByInst}
@@ -260,6 +264,7 @@ export default function BandHome() {
                 <ExportButtons
                   reportData={reportData}
                   onExport={(msg) => toast(msg, 'success')}
+                  detailedOnly
                 />
               </>
             )}

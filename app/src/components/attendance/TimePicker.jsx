@@ -10,6 +10,7 @@ export default function TimePicker({ hour, minute, ampm, onChange }) {
         <select
           value={hour}
           onChange={(e) => onChange({ hour: e.target.value, minute, ampm })}
+          style={{ colorScheme: 'dark' }}
         >
           {HOURS.map(h => (
             <option key={h} value={h}>{h}</option>
@@ -19,6 +20,7 @@ export default function TimePicker({ hour, minute, ampm, onChange }) {
         <select
           value={minute}
           onChange={(e) => onChange({ hour, minute: e.target.value, ampm })}
+          style={{ colorScheme: 'dark' }}
         >
           {MINUTES.map(m => (
             <option key={m} value={m}>{m}</option>
@@ -27,6 +29,7 @@ export default function TimePicker({ hour, minute, ampm, onChange }) {
         <select
           value={ampm}
           onChange={(e) => onChange({ hour, minute, ampm: e.target.value })}
+          style={{ colorScheme: 'dark' }}
         >
           {AMPM.map(a => (
             <option key={a} value={a}>{a}</option>

@@ -25,8 +25,8 @@ export default function Header({ title = 'HNPS Junior Band', subtitle = 'Attenda
             </button>
           )}
           <div>
-            <h1 className="text-lg font-bold tracking-tight">{title}</h1>
-            <div className="text-[13px] opacity-85 mt-0.5">{subtitle}</div>
+            <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+            <div className="text-[13px] text-white/80 mt-0.5">{subtitle}</div>
           </div>
         </div>
       </div>

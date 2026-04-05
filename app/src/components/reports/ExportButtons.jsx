@@ -11,7 +11,7 @@ function downloadCSV(csv, filename) {
   URL.revokeObjectURL(url);
 }
 
-export default function ExportButtons({ reportData, onExport }) {
+export default function ExportButtons({ reportData, onExport, detailedOnly = false }) {
   if (!reportData || reportData.empty) return null;
 
   const handleSummaryCSV = () => {
@@ -57,9 +57,11 @@ export default function ExportButtons({ reportData, onExport }) {
 
   return (
     <div className="mt-4 flex gap-2 flex-wrap">
-      <Button variant="secondary" className="flex-1 min-w-[140px]" onClick={handleSummaryCSV}>
-        Export Summary CSV
-      </Button>
+      {!detailedOnly && (
+        <Button variant="secondary" className="flex-1 min-w-[140px]" onClick={handleSummaryCSV}>
+          Export Summary CSV
+        </Button>
+      )}
       <Button className="flex-1 min-w-[140px]" onClick={handleDetailedCSV}>
         Export Detailed CSV
       </Button>

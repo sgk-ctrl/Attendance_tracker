@@ -52,7 +52,7 @@ export default function BandSelector() {
 
         <div className="mt-6 text-center">
           <button
-            className="text-sm text-[var(--accent-blue-light)] font-semibold underline cursor-pointer bg-transparent border-none"
+            className="text-sm text-[var(--accent-blue-light)] font-semibold underline cursor-pointer bg-transparent border-none min-h-[44px] py-3"
             onClick={() => navigate('/dashboard')}
           >
             View Dashboard
@@ -60,7 +60,7 @@ export default function BandSelector() {
         </div>
 
         <div className="mt-4 text-center">
-          <a href="privacy.html" target="_blank" className="text-sm text-[var(--text-muted)] underline">Privacy Policy</a>
+          <a href="privacy.html" target="_blank" className="text-sm text-[var(--text-muted)] underline min-h-[44px] py-3 inline-flex items-center">Privacy Policy</a>
         </div>
       </main>
     </div>
