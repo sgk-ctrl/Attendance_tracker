@@ -157,7 +157,9 @@ export default function AttendanceFlow() {
   // Summary data
   const summaryData = flow.step === 3 ? flow.getSummaryData() : null;
 
-  const subtitle = sessionTime ? `Session at ${sessionTime}` : 'Attendance';
+  const formattedDate = sessionDate ? `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][sessionDate.getDay()]} ${sessionDate.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][sessionDate.getMonth()]}` : '';
+  const recorderName = user?.email?.split('@')[0] || '';
+  const subtitle = `${formattedDate}${sessionTime ? ` · ${sessionTime}` : ''}${recorderName ? ` · ${recorderName}` : ''}`;
 
   if (dataLoading) {
     return (
