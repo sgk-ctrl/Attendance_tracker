@@ -263,18 +263,34 @@ body {
   margin-bottom: 8px;
 }
 .session-picker select {
-  width: 100%;
   padding: 12px 16px;
   border: 2px solid var(--gray-300);
   border-radius: var(--radius-sm);
   font-size: 16px;
   background: var(--white);
   color: var(--gray-900);
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a5568' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
+}
+.time-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+.time-picker-row select {
+  padding: 12px 14px;
+  border: 2px solid var(--blue-500);
+  border-radius: var(--radius-sm);
+  font-size: 18px;
+  font-weight: 600;
+  background: var(--white);
+  color: var(--gray-900);
+  text-align: center;
+  min-width: 60px;
+}
+.time-sep {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-700);
 }
 
 .warning-banner {
@@ -963,11 +979,26 @@ select:focus-visible,
       </div>
       <input type="date" id="datePicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;" onchange="onDateChange(this.value)">
       <div id="sessionPickerWrap" class="session-picker">
-        <label for="sessionPicker">Select session:</label>
-        <select id="sessionPicker" onchange="updateSessionType()">
-          <option value="monday_afternoon">Monday Afternoon (3:10 PM)</option>
-          <option value="wednesday_morning">Wednesday Morning (7:45 AM)</option>
-        </select>
+        <label>Session start time:</label>
+        <div class="time-picker-row">
+          <select id="sessionHour" onchange="updateSessionTime()">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+          </select>
+          <span class="time-sep">:</span>
+          <select id="sessionMinute" onchange="updateSessionTime()">
+            <option value="00">00</option><option value="05">05</option><option value="10">10</option>
+            <option value="15">15</option><option value="20">20</option><option value="25">25</option>
+            <option value="30">30</option><option value="35">35</option><option value="40">40</option>
+            <option value="45">45</option><option value="50">50</option><option value="55">55</option>
+          </select>
+          <select id="sessionAmPm" onchange="updateSessionTime()">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
       </div>
       <div id="termBadgeWrap">
         <span class="term-badge" id="termBadge"></span>
@@ -1093,6 +1124,7 @@ const state = {
   currentScreen: 1,
   mismatchInstruments: [],  // Track mismatch instruments for validation
   hasDataEntered: false,    // Track if any data has been entered (for nav guards)
+  sessionTime: null,        // e.g. "3:10 PM"
 };
 
 // ---- Global Error Handlers ----
@@ -1186,7 +1218,8 @@ function calcTerm(d) {
 }
 
 function sessionTypeLabel(t) {
-  return t === 'monday_afternoon' ? 'Monday Afternoon (3:10 PM)' : 'Wednesday Morning (7:45 AM)';
+  if (state.sessionTime) return `Session at ${state.sessionTime}`;
+  return t === 'morning' ? 'Morning Session' : 'Afternoon Session';
 }
 
 // Fix #12: Update progress indicator
@@ -1266,13 +1299,19 @@ function initScreen1() {
   // Fix #8: Set term override default
   $('termOverrideSelect').value = String(state.term);
 
-  // Pre-select the most likely session based on day of week
+  // Pre-select the most likely session time based on day of week
   if (dayOfWeek === 3) {
-    state.sessionType = 'wednesday_morning';
-    $('sessionPicker').value = 'wednesday_morning';
+    $('sessionHour').value = '7';
+    $('sessionMinute').value = '45';
+    $('sessionAmPm').value = 'AM';
+    state.sessionType = 'morning';
+    state.sessionTime = '7:45 AM';
   } else {
-    state.sessionType = 'monday_afternoon';
-    $('sessionPicker').value = 'monday_afternoon';
+    $('sessionHour').value = '3';
+    $('sessionMinute').value = '10';
+    $('sessionAmPm').value = 'PM';
+    state.sessionType = 'afternoon';
+    state.sessionTime = '3:10 PM';
   }
 
   checkExistingSession().catch(e => console.warn('Session check failed:', e));
@@ -1288,7 +1327,7 @@ async function checkExistingSession() {
       .from('sessions')
       .select('*')
       .eq('session_date', dateStr)
-      .eq('session_type', state.sessionType)
+      .eq('session_time', state.sessionTime || '')
       .maybeSingle();
 
     if (error) throw error;
@@ -1311,9 +1350,15 @@ async function checkExistingSession() {
   }
 }
 
-window.updateSessionType = function() {
-  state.sessionType = $('sessionPicker').value;
-  checkExistingSession();
+window.updateSessionTime = function() {
+  const h = $('sessionHour').value;
+  const m = $('sessionMinute').value;
+  const ap = $('sessionAmPm').value;
+  state.sessionTime = `${h}:${m} ${ap}`;
+  // Map to session type for DB storage
+  const hour24 = ap === 'PM' ? (parseInt(h) === 12 ? 12 : parseInt(h) + 12) : (parseInt(h) === 12 ? 0 : parseInt(h));
+  state.sessionType = hour24 < 12 ? 'morning' : 'afternoon';
+  checkExistingSession().catch(e => console.warn(e));
 };
 
 window.openDatePicker = function() {
@@ -1335,13 +1380,19 @@ window.onDateChange = function(val) {
   $('fullDate').textContent = formatDate(d);
   $('termBadge').textContent = `Term ${state.term}, ${state.year}`;
   $('datePicker').value = val;
-  // Pre-select session based on day
+  // Pre-select session time based on day
   if (dayOfWeek === 3) {
-    state.sessionType = 'wednesday_morning';
-    $('sessionPicker').value = 'wednesday_morning';
+    $('sessionHour').value = '7';
+    $('sessionMinute').value = '45';
+    $('sessionAmPm').value = 'AM';
+    state.sessionType = 'morning';
+    state.sessionTime = '7:45 AM';
   } else {
-    state.sessionType = 'monday_afternoon';
-    $('sessionPicker').value = 'monday_afternoon';
+    $('sessionHour').value = '3';
+    $('sessionMinute').value = '10';
+    $('sessionAmPm').value = 'PM';
+    state.sessionType = 'afternoon';
+    state.sessionTime = '3:10 PM';
   }
   checkExistingSession();
 };
@@ -1581,7 +1632,7 @@ window.startAttendance = async function(editMode) {
         .from('sessions')
         .select('*')
         .eq('session_date', dateStr)
-        .eq('session_type', state.sessionType)
+        .eq('session_time', state.sessionTime || '')
         .maybeSingle();
       if (existing) {
         session = existing;
@@ -1591,6 +1642,7 @@ window.startAttendance = async function(editMode) {
           .insert({
             session_date: dateStr,
             session_type: state.sessionType,
+            session_time: state.sessionTime || '',
             term: state.term,
             year: state.year
           })
@@ -2259,7 +2311,8 @@ window.loadReport = async function() {
       const day = d.getDate();
       const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
       const dayName = ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
-      html += `<th class="session-col"><div>${day}</div><div>${mon}</div><div class="session-type-label">${sess.session_type === 'monday_afternoon' ? 'PM' : 'AM'}</div></th>`;
+      const timeLabel = sess.session_time || (sess.session_type === 'monday_afternoon' ? '3:10 PM' : sess.session_type === 'wednesday_morning' ? '7:45 AM' : sess.session_type === 'afternoon' ? 'PM' : 'AM');
+      html += `<th class="session-col"><div>${day}</div><div>${mon}</div><div class="session-type-label">${timeLabel}</div></th>`;
     });
     html += `<th>Total</th><th>%</th></tr></thead><tbody>`;
 
@@ -2336,7 +2389,7 @@ window.exportDetailedCSV = function() {
     const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()];
     const day = dt.getDate();
     const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()];
-    const timeLabel = sess.session_type === 'monday_afternoon' ? '3:10PM' : '7:45AM';
+    const timeLabel = sess.session_time || (sess.session_type === 'monday_afternoon' ? '3:10PM' : sess.session_type === 'wednesday_morning' ? '7:45AM' : sess.session_type);
     csv += `,"${dayName} ${day} ${mon} (${timeLabel})"`;
   });
   csv += ',"Sessions Attended","Total Sessions","Attendance %"\n';
