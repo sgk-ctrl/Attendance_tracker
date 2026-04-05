@@ -328,6 +328,59 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
 
+/* ---- Light Theme (auto-detect) ---- */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --bg-card-solid: #ffffff;
+    --bg-card-hover: rgba(255, 255, 255, 1);
+    --border-card: rgba(59, 130, 246, 0.2);
+    --border-subtle: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --accent-blue: #2563eb;
+    --accent-blue-light: #3b82f6;
+    --accent-blue-dark: #1d4ed8;
+    --accent-blue-border: rgba(59, 130, 246, 0.3);
+    --accent-blue-glow: rgba(59, 130, 246, 0.1);
+    --accent-blue-bg: rgba(59, 130, 246, 0.08);
+    --accent-blue-bg-strong: rgba(59, 130, 246, 0.15);
+    --accent-green: #16a34a;
+    --accent-green-light: #22c55e;
+    --accent-green-dark: #15803d;
+    --accent-green-bg: #f0fdf4;
+    --accent-green-border: #86efac;
+    --accent-red: #dc2626;
+    --accent-red-dark: #b91c1c;
+    --accent-red-bg: #fef2f2;
+    --accent-red-border: #fca5a5;
+    --accent-orange: #d97706;
+    --accent-orange-bg: #fffbeb;
+    --accent-orange-border: #fcd34d;
+    --surface-input: #ffffff;
+    --surface-elevated: rgba(241, 245, 249, 0.8);
+    --surface-header-from: #1e40af;
+    --surface-header-to: #2563eb;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  .report-table tr:nth-child(even) td { background: rgba(241, 245, 249, 0.5); }
+  .report-table tr:nth-child(odd) td { background: rgba(255, 255, 255, 0.8); }
+  .report-table tr:hover td { background: rgba(59, 130, 246, 0.05); }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

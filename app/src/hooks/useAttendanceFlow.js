@@ -39,9 +39,11 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
   // Start or edit attendance
   const startAttendance = useCallback(async (editMode = false) => {
     const dateStr = dateToISO(sessionDate);
+    const volunteerName = localStorage.getItem('volunteer_name') || '';
 
     let session = existingSession;
     if (!session) {
+      // First check: look for an existing session
       const { data: existing } = await supabase
         .from('sessions')
         .select('*')
@@ -52,20 +54,35 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
       if (existing) {
         session = existing;
       } else {
-        const { data, error } = await supabase
+        // Brief delay then re-check to guard against concurrent creation
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const { data: recheck } = await supabase
           .from('sessions')
-          .insert({
-            session_date: dateStr,
-            session_type: sessionType,
-            session_time: sessionTime || '',
-            term,
-            year,
-            band_id: bandId,
-          })
-          .select()
-          .single();
-        if (error) throw error;
-        session = data;
+          .select('*')
+          .eq('session_date', dateStr)
+          .eq('session_time', sessionTime || '')
+          .eq('band_id', bandId)
+          .maybeSingle();
+        if (recheck) {
+          session = recheck;
+        } else {
+          // Use upsert with on-conflict to prevent duplicates
+          const { data, error } = await supabase
+            .from('sessions')
+            .upsert({
+              session_date: dateStr,
+              session_type: sessionType,
+              session_time: sessionTime || '',
+              term,
+              year,
+              band_id: bandId,
+              recorded_by: volunteerName,
+            }, { onConflict: 'band_id,session_date,session_time' })
+            .select()
+            .single();
+          if (error) throw error;
+          session = data;
+        }
       }
     }
     setSessionId(session.id);

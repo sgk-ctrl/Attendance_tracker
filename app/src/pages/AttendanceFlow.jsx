@@ -285,6 +285,7 @@ export default function AttendanceFlow() {
             <SummaryHero
               presentCount={summaryData.presentCount}
               totalStudents={summaryData.totalStudents}
+              recordedBy={localStorage.getItem('volunteer_name') || ''}
             />
             <BreakdownList breakdown={summaryData.breakdown} />
             <AbsentList breakdown={summaryData.breakdown} />

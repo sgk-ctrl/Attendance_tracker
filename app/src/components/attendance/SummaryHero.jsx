@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { animateCountUp } from '../../lib/utils';
 
-export default function SummaryHero({ presentCount, totalStudents }) {
+export default function SummaryHero({ presentCount, totalStudents, recordedBy }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -24,6 +24,11 @@ export default function SummaryHero({ presentCount, totalStudents }) {
       <div className="text-sm text-[var(--text-secondary)] mt-1">
         students present
       </div>
+      {recordedBy && (
+        <div className="text-xs text-[var(--text-muted)] mt-3 pt-3 border-t border-[var(--border-subtle)]">
+          Recorded by: <span className="font-semibold text-[var(--text-secondary)]">{recordedBy}</span>
+        </div>
+      )}
     </div>
   );
 }
