@@ -73,11 +73,11 @@ export function useOfflineSync() {
 
           const records = data.payload.map(r => ({ ...r, session_id: session.id }));
           // Check existing, update or insert
-          const { data: existing } = await supabase
+          const { data: existingAtt } = await supabase
             .from('attendance')
             .select('student_id')
             .eq('session_id', session.id);
-          const existingIds = new Set((existing || []).map(e => e.student_id));
+          const existingIds = new Set((existingAtt || []).map(e => e.student_id));
           const toInsert = records.filter(r => !existingIds.has(r.student_id));
           for (const rec of records.filter(r => existingIds.has(r.student_id))) {
             await supabase.from('attendance').update({ present: rec.present })

@@ -82,15 +82,15 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
             .single();
           if (error) {
             // If duplicate, try to find the existing one
-            const { data: existing } = await supabase
+            const { data: existingSession } = await supabase
               .from('sessions')
               .select('*')
               .eq('session_date', dateStr)
               .eq('session_time', sessionTime || '')
               .eq('band_id', bandId)
               .maybeSingle();
-            if (existing) {
-              session = existing;
+            if (existingSession) {
+              session = existingSession;
             } else {
               throw error;
             }
@@ -236,12 +236,12 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
 
     try {
       // Check if attendance records already exist for this session
-      const { data: existing } = await supabase
+      const { data: existingAtt } = await supabase
         .from('attendance')
         .select('student_id')
         .eq('session_id', sessionId);
 
-      const existingIds = new Set((existing || []).map(e => e.student_id));
+      const existingIds = new Set((existingAtt || []).map(e => e.student_id));
       const toUpdate = records.filter(r => existingIds.has(r.student_id));
       const toInsert = records.filter(r => !existingIds.has(r.student_id));
 
