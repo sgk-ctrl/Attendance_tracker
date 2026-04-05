@@ -66,10 +66,10 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         if (recheck) {
           session = recheck;
         } else {
-          // Use upsert with on-conflict to prevent duplicates
+          // Insert new session (select-then-insert avoids needing a unique constraint)
           const { data, error } = await supabase
             .from('sessions')
-            .upsert({
+            .insert({
               session_date: dateStr,
               session_type: sessionType,
               session_time: sessionTime || '',
@@ -77,11 +77,26 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
               year,
               band_id: bandId,
               recorded_by: volunteerName,
-            }, { onConflict: 'band_id,session_date,session_time' })
+            })
             .select()
             .single();
-          if (error) throw error;
-          session = data;
+          if (error) {
+            // If duplicate, try to find the existing one
+            const { data: existing } = await supabase
+              .from('sessions')
+              .select('*')
+              .eq('session_date', dateStr)
+              .eq('session_time', sessionTime || '')
+              .eq('band_id', bandId)
+              .maybeSingle();
+            if (existing) {
+              session = existing;
+            } else {
+              throw error;
+            }
+          } else {
+            session = data;
+          }
         }
       }
     }
