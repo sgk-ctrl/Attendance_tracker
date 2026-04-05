@@ -4,6 +4,7 @@ import { useBandData } from '../hooks/useBandData';
 import { useAttendanceFlow } from '../hooks/useAttendanceFlow';
 import { useNavGuard } from '../hooks/useNavGuard';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/layout/Header';
 import ProgressIndicator from '../components/layout/ProgressIndicator';
 import Spinner from '../components/layout/Spinner';
@@ -21,6 +22,7 @@ export default function AttendanceFlow() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { user } = useAuth();
   const { band, instruments, students, loading: dataLoading, error: dataError } = useBandData(bandId);
 
   const {
@@ -285,7 +287,7 @@ export default function AttendanceFlow() {
             <SummaryHero
               presentCount={summaryData.presentCount}
               totalStudents={summaryData.totalStudents}
-              recordedBy={localStorage.getItem('volunteer_name') || ''}
+              recordedBy={user?.email || ''}
             />
             <BreakdownList breakdown={summaryData.breakdown} />
             <AbsentList breakdown={summaryData.breakdown} />

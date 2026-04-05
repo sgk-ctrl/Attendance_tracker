@@ -2,6 +2,18 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { dateToISO, savePendingAttendance, removePendingAttendance } from '../lib/utils';
 
+function getAuthEmail() {
+  // Read email from the current Supabase session synchronously via cached storage
+  try {
+    const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (storageKey) {
+      const session = JSON.parse(localStorage.getItem(storageKey));
+      return session?.user?.email || session?.currentSession?.user?.email || '';
+    }
+  } catch { /* ignore */ }
+  return '';
+}
+
 export function useAttendanceFlow({ instruments, students, sessionDate, sessionTime, sessionType, term, year, bandId }) {
   const [step, setStep] = useState(1); // 1=tally, 2=resolve, 3=summary
   const [tallies, setTallies] = useState({});
@@ -39,7 +51,7 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
   // Start or edit attendance
   const startAttendance = useCallback(async (editMode = false) => {
     const dateStr = dateToISO(sessionDate);
-    const volunteerName = localStorage.getItem('volunteer_name') || '';
+    const volunteerName = getAuthEmail();
 
     let session = existingSession;
     if (!session) {

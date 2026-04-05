@@ -5,6 +5,7 @@ import { useReports } from '../hooks/useReports';
 import { useEvents } from '../hooks/useEvents';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { calcTerm, defaultTimeForDay, buildSessionTime, sessionTypeFromTime, dateToISO } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import Header from '../components/layout/Header';
@@ -32,6 +33,7 @@ export default function BandHome() {
   const { bandId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const { band, loading: bandLoading } = useBandData(bandId);
   const { reportData, loading: reportLoading, error: reportError, loadReport } = useReports(bandId);
   const { events, loading: eventsLoading, createEvent } = useEvents(bandId);
@@ -43,11 +45,6 @@ export default function BandHome() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [existingSession, setExistingSession] = useState(null);
   const [checkingSession, setCheckingSession] = useState(false);
-
-  // Volunteer name tracking
-  const [volunteerName, setVolunteerName] = useState(() => localStorage.getItem('volunteer_name') || '');
-  const [volunteerInput, setVolunteerInput] = useState('');
-  const [editingName, setEditingName] = useState(false);
 
   const defaultTime = defaultTimeForDay(sessionDate.getDay());
   const [timeState, setTimeState] = useState({
@@ -187,78 +184,12 @@ export default function BandHome() {
               </div>
             )}
 
-            {/* Volunteer Name Card */}
-            {!volunteerName && !editingName ? (
-              <Card>
-                <div className="text-center">
-                  <div className="text-base font-bold text-[var(--text-primary)] mb-2">Welcome! What's your name?</div>
-                  <div className="text-sm text-[var(--text-secondary)] mb-3">This helps us track who recorded attendance.</div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={volunteerInput}
-                      onChange={(e) => setVolunteerInput(e.target.value)}
-                      className="flex-1 px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
-                    />
-                    <Button
-                      onClick={() => {
-                        if (volunteerInput.trim()) {
-                          localStorage.setItem('volunteer_name', volunteerInput.trim());
-                          setVolunteerName(volunteerInput.trim());
-                          setVolunteerInput('');
-                        }
-                      }}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ) : volunteerName && !editingName ? (
-              <div className="text-sm text-[var(--text-secondary)] mb-3 flex items-center justify-center gap-2">
-                Recording as: <span className="font-semibold text-[var(--text-primary)]">{volunteerName}</span>
-                <button
-                  className="text-[var(--accent-blue-light)] text-xs underline bg-transparent border-none cursor-pointer"
-                  onClick={() => { setEditingName(true); setVolunteerInput(volunteerName); }}
-                >
-                  change
-                </button>
+            {/* Recording-as indicator */}
+            {user && (
+              <div className="text-sm text-[var(--text-secondary)] mb-3 flex items-center justify-center gap-1">
+                Recording as: <span className="font-semibold text-[var(--text-primary)]">{user.email}</span>
               </div>
-            ) : editingName ? (
-              <Card>
-                <div className="text-center">
-                  <div className="text-sm text-[var(--text-secondary)] mb-2">Update your name</div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={volunteerInput}
-                      onChange={(e) => setVolunteerInput(e.target.value)}
-                      className="flex-1 px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
-                    />
-                    <Button
-                      onClick={() => {
-                        if (volunteerInput.trim()) {
-                          localStorage.setItem('volunteer_name', volunteerInput.trim());
-                          setVolunteerName(volunteerInput.trim());
-                          setVolunteerInput('');
-                          setEditingName(false);
-                        }
-                      }}
-                    >
-                      Save
-                    </Button>
-                    <button
-                      className="text-[var(--text-muted)] text-sm bg-transparent border-none cursor-pointer px-2"
-                      onClick={() => { setEditingName(false); setVolunteerInput(''); }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </Card>
-            ) : null}
+            )}
 
             <Card>
               <DatePickerComp date={sessionDate} onChange={handleDateChange} />
