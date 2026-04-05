@@ -235,25 +235,46 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     const dateStr = dateToISO(sessionDate);
 
     try {
-      const { error } = await supabase
+      // Check if attendance records already exist for this session
+      const { data: existing } = await supabase
         .from('attendance')
-        .upsert(records, { onConflict: 'session_id,student_id' });
+        .select('student_id')
+        .eq('session_id', sessionId);
 
-      if (error) {
-        if (error.code === '23503' || (error.message && error.message.includes('foreign key'))) {
-          const { data: freshStudents } = await supabase.from('students').select('id').eq('active', true);
-          const validIds = new Set((freshStudents || []).map(s => s.id));
-          const validRecords = records.filter(r => validIds.has(r.student_id));
-          const { error: retryErr } = await supabase
-            .from('attendance')
-            .upsert(validRecords, { onConflict: 'session_id,student_id' });
-          if (retryErr) throw retryErr;
-          removePendingAttendance(dateStr, sessionType);
-          setHasDataEntered(false);
-          setStep(3);
-          return { success: true, warning: 'Some students were excluded due to roster changes.' };
+      const existingIds = new Set((existing || []).map(e => e.student_id));
+      const toUpdate = records.filter(r => existingIds.has(r.student_id));
+      const toInsert = records.filter(r => !existingIds.has(r.student_id));
+
+      // Update existing records
+      for (const rec of toUpdate) {
+        await supabase
+          .from('attendance')
+          .update({ present: rec.present })
+          .eq('session_id', rec.session_id)
+          .eq('student_id', rec.student_id);
+      }
+
+      // Insert new records
+      if (toInsert.length > 0) {
+        const { error } = await supabase
+          .from('attendance')
+          .insert(toInsert);
+        if (error) {
+          if (error.code === '23503' || (error.message && error.message.includes('foreign key'))) {
+            const { data: freshStudents } = await supabase.from('students').select('id').eq('active', true);
+            const validIds = new Set((freshStudents || []).map(s => s.id));
+            const validInserts = toInsert.filter(r => validIds.has(r.student_id));
+            if (validInserts.length > 0) {
+              const { error: retryErr } = await supabase.from('attendance').insert(validInserts);
+              if (retryErr) throw retryErr;
+            }
+            removePendingAttendance(dateStr, sessionType);
+            setHasDataEntered(false);
+            setStep(3);
+            return { success: true, warning: 'Some students were excluded due to roster changes.' };
+          }
+          throw error;
         }
-        throw error;
       }
 
       removePendingAttendance(dateStr, sessionType);

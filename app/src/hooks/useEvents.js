@@ -90,10 +90,21 @@ export function useEventAttendance(eventId) {
         student_id: s.id,
         present: !!attendance[s.id],
       }));
-      const { error } = await supabase
+      // Check existing, update or insert
+      const { data: existing } = await supabase
         .from('event_attendance')
-        .upsert(records, { onConflict: 'event_id,student_id' });
-      if (error) throw error;
+        .select('student_id')
+        .eq('event_id', eventId);
+      const existingIds = new Set((existing || []).map(e => e.student_id));
+      for (const rec of records.filter(r => existingIds.has(r.student_id))) {
+        await supabase.from('event_attendance').update({ present: rec.present })
+          .eq('event_id', rec.event_id).eq('student_id', rec.student_id);
+      }
+      const toInsert = records.filter(r => !existingIds.has(r.student_id));
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from('event_attendance').insert(toInsert);
+        if (error) throw error;
+      }
       return { success: true };
     } finally {
       setSubmitting(false);

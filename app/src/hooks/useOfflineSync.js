@@ -72,10 +72,21 @@ export function useOfflineSync() {
           }
 
           const records = data.payload.map(r => ({ ...r, session_id: session.id }));
-          const { error } = await supabase
+          // Check existing, update or insert
+          const { data: existing } = await supabase
             .from('attendance')
-            .upsert(records, { onConflict: 'session_id,student_id' });
-          if (error) throw error;
+            .select('student_id')
+            .eq('session_id', session.id);
+          const existingIds = new Set((existing || []).map(e => e.student_id));
+          const toInsert = records.filter(r => !existingIds.has(r.student_id));
+          for (const rec of records.filter(r => existingIds.has(r.student_id))) {
+            await supabase.from('attendance').update({ present: rec.present })
+              .eq('session_id', rec.session_id).eq('student_id', rec.student_id);
+          }
+          if (toInsert.length > 0) {
+            const { error } = await supabase.from('attendance').insert(toInsert);
+            if (error) throw error;
+          }
 
           localStorage.removeItem(key);
         } catch (e) {
