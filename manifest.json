@@ -1,0 +1,12 @@
+{
+  "name": "HNPS Band Attendance",
+  "short_name": "Band Attendance",
+  "description": "Attendance tracker for HNPS Junior Band",
+  "start_url": "/Attendance_tracker/",
+  "display": "standalone",
+  "background_color": "#0a0f1a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

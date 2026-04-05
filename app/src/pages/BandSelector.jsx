@@ -58,6 +58,10 @@ export default function BandSelector() {
             View Dashboard
           </button>
         </div>
+
+        <div className="mt-4 text-center">
+          <a href="privacy.html" target="_blank" className="text-sm text-[var(--text-muted)] underline">Privacy Policy</a>
+        </div>
       </main>
     </div>
   );
