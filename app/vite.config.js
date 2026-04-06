@@ -4,5 +4,5 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/Attendance_tracker/'
+  base: process.env.VERCEL ? '/' : '/Attendance_tracker/'
 })
