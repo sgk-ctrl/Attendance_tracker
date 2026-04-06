@@ -45,6 +45,32 @@ export default function BandHome() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [existingSession, setExistingSession] = useState(null);
   const [checkingSession, setCheckingSession] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    if (!user?.email) return;
+    supabase.from('allowed_users').select('role').eq('email', user.email).maybeSingle()
+      .then(({ data }) => setIsAdmin(data?.role === 'admin'));
+  }, [user?.email]);
+
+  // Reset session (admin only)
+  const handleResetSession = useCallback(async () => {
+    if (!existingSession || !isAdmin) return;
+    if (!window.confirm(`Delete attendance for this session? This cannot be undone.`)) return;
+    setResetting(true);
+    try {
+      await supabase.from('attendance').delete().eq('session_id', existingSession.id);
+      await supabase.from('sessions').delete().eq('id', existingSession.id);
+      setExistingSession(null);
+      toast('Session deleted', 'success');
+    } catch (e) {
+      toast('Failed to delete session: ' + (e.message || 'Unknown error'), 'error');
+    } finally {
+      setResetting(false);
+    }
+  }, [existingSession, isAdmin, toast]);
 
   const defaultTime = defaultTimeForDay(sessionDate.getDay());
   const [timeState, setTimeState] = useState({
@@ -210,14 +236,20 @@ export default function BandHome() {
             )}
 
             {existingSession ? (
-              <>
-                <Button
-                  onClick={handleEdit}
-                  className="mt-5"
-                >
+              <div className="mt-5 flex flex-col gap-3">
+                <Button onClick={handleEdit}>
                   View / Edit Existing
                 </Button>
-              </>
+                {isAdmin && (
+                  <button
+                    onClick={handleResetSession}
+                    disabled={resetting}
+                    className="py-3 px-4 rounded-xl text-sm font-semibold border border-[var(--accent-red)] text-[var(--accent-red)] bg-transparent hover:bg-[var(--accent-red-bg)] transition-all disabled:opacity-50 min-h-[44px]"
+                  >
+                    {resetting ? 'Deleting...' : 'Reset This Session'}
+                  </button>
+                )}
+              </div>
             ) : (
               <Button
                 onClick={handleStart}
