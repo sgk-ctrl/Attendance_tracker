@@ -30,7 +30,7 @@ export default function DatePicker({ date, onChange }) {
           value={isoValue}
           onChange={handleChange}
           className="w-full max-w-[280px] mx-auto block px-4 py-3 text-base font-semibold text-center border border-[var(--accent-blue-border)] rounded-lg bg-[var(--surface-input)] text-[var(--text-primary)] cursor-pointer"
-          style={{ fontSize: '16px', colorScheme: 'dark' }}
+          style={{ fontSize: '16px' }}
         />
       </div>
     </div>

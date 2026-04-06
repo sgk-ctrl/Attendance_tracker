@@ -2,6 +2,7 @@
 
 /* ---- Custom Properties ---- */
 :root {
+  color-scheme: dark;
   --bg-primary: #0a0f1a;
   --bg-secondary: #111827;
   --bg-card: rgba(17, 24, 39, 0.8);
@@ -323,14 +324,18 @@ select:focus-visible,
   outline-offset: 2px;
 }
 
-/* ---- Dark mode date picker icon ---- */
+/* ---- Dark mode date picker icon (light blue) ---- */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
+  filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(200deg) brightness(118%) contrast(100%);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
 }
 
 /* ---- Light Theme (auto-detect) ---- */
 @media (prefers-color-scheme: light) {
   :root {
+    color-scheme: light;
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --bg-card: rgba(255, 255, 255, 0.9);
