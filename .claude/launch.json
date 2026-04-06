@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "band-attendance",
+      "runtimeExecutable": "/opt/homebrew/bin/npx",
+      "runtimeArgs": ["serve", "-s", "/tmp/Attendance_tracker", "-l", "3848", "--no-clipboard"],
+      "port": 3848
+    }
+  ]
+}

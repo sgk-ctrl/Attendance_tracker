@@ -48,9 +48,14 @@ const router = createHashRouter([
           { path: '/band/:bandId/attendance', element: <AttendanceFlow /> },
           { path: '/band/:bandId/events/:eventId', element: <EventAttendance /> },
           { path: '/dashboard', element: <Dashboard /> },
+          { path: '*', element: <Navigate to="/" replace /> },
         ],
       },
     ],
+  },
+  {
+    path: '*',
+    element: <Navigate to="/login" replace />,
   },
 ]);
 
