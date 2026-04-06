@@ -201,9 +201,30 @@ export default function AttendanceFlow() {
               </EmptyState>
             ) : (
               <>
-                <p className="text-sm text-[var(--text-secondary)] mb-4">
-                  Enter the count of students present for each instrument section.
-                </p>
+                <div className="rounded-xl p-4 mb-4 border border-[var(--accent-blue-border)] bg-[var(--accent-blue-glow)]">
+                  <p className="text-sm font-semibold text-[var(--accent-blue-light)] mb-1">
+                    How this works
+                  </p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Count the students in each instrument section and enter the number below.
+                    You must enter a count for <strong className="text-[var(--text-primary)]">every instrument</strong> before
+                    you can proceed. Use <strong className="text-[var(--text-primary)]">All</strong> if everyone is present,
+                    or <strong className="text-[var(--text-primary)]">None</strong> if the section is empty.
+                  </p>
+                </div>
+
+                {!allFilled && enteredCount > 0 && (
+                  <div className="rounded-lg px-4 py-2 mb-3 text-sm text-[var(--accent-orange)] bg-[var(--accent-orange-bg)] border border-[var(--accent-orange-border)]">
+                    {instruments.length - enteredCount} instrument(s) still need a count
+                  </div>
+                )}
+
+                {allFilled && (
+                  <div className="rounded-lg px-4 py-2 mb-3 text-sm text-[var(--accent-green)] bg-[var(--accent-green-bg)] border border-[var(--accent-green-border)]">
+                    ✓ All instruments entered — {tallyTotal} of {flow.totalStudents} students accounted for. Tap Next to continue.
+                  </div>
+                )}
+
                 <div>
                   {visibleInstruments.map(inst => {
                     const expected = students.filter(s => s.instrument_id === inst.id).length;
