@@ -6,6 +6,7 @@ import BandHome from './pages/BandHome';
 import AttendanceFlow from './pages/AttendanceFlow';
 import EventAttendance from './pages/EventAttendance';
 import Dashboard from './pages/Dashboard';
+import BandSetup from './pages/BandSetup';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Spinner from './components/layout/Spinner';
 
@@ -46,6 +47,7 @@ const router = createHashRouter([
           { path: '/', element: <BandSelector /> },
           { path: '/band/:bandId', element: <BandHome /> },
           { path: '/band/:bandId/attendance', element: <AttendanceFlow /> },
+          { path: '/band/:bandId/setup', element: <BandSetup /> },
           { path: '/band/:bandId/events/:eventId', element: <EventAttendance /> },
           { path: '/dashboard', element: <Dashboard /> },
           { path: '*', element: <Navigate to="/" replace /> },

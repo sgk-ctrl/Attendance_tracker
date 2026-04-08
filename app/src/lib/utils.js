@@ -34,6 +34,18 @@ export function defaultTimeForDay(dayOfWeek) {
   return { hour: '3', minute: '10', ampm: 'PM', type: 'afternoon', time: '3:10 PM' };
 }
 
+export function defaultTimeForBand(band, dayOfWeek) {
+  if (band?.practice_day && band?.practice_time) {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const bandDayIndex = days.indexOf(band.practice_day);
+    if (dayOfWeek === bandDayIndex) {
+      const parts = band.practice_time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (parts) return { hour: parts[1], minute: parts[2], ampm: parts[3].toUpperCase() };
+    }
+  }
+  return defaultTimeForDay(dayOfWeek);
+}
+
 export function buildSessionTime(hour, minute, ampm) {
   return `${hour}:${minute} ${ampm}`;
 }

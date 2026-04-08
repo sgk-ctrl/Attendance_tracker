@@ -6,7 +6,7 @@ import { useEvents } from '../hooks/useEvents';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
-import { calcTerm, defaultTimeForDay, buildSessionTime, sessionTypeFromTime, dateToISO } from '../lib/utils';
+import { calcTerm, defaultTimeForDay, defaultTimeForBand, buildSessionTime, sessionTypeFromTime, dateToISO } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import Header from '../components/layout/Header';
 import TabBar from '../components/layout/TabBar';
@@ -72,7 +72,7 @@ export default function BandHome() {
     }
   }, [existingSession, isAdmin, toast]);
 
-  const defaultTime = defaultTimeForDay(sessionDate.getDay());
+  const defaultTime = defaultTimeForBand(band, sessionDate.getDay());
   const [timeState, setTimeState] = useState({
     hour: defaultTime.hour,
     minute: defaultTime.minute,
@@ -116,7 +116,7 @@ export default function BandHome() {
     setSessionDate(d);
     setTerm(calcTerm(d));
     setYear(d.getFullYear());
-    const dt = defaultTimeForDay(d.getDay());
+    const dt = defaultTimeForBand(band, d.getDay());
     setTimeState({ hour: dt.hour, minute: dt.minute, ampm: dt.ampm });
   };
 
@@ -210,12 +210,13 @@ export default function BandHome() {
               </div>
             )}
 
-            {/* Recording-as indicator */}
-            {user && (
-              <div className="text-sm text-[var(--text-secondary)] mb-3 flex items-center justify-center gap-1">
-                Recording as: <span className="font-semibold text-[var(--text-primary)]">{user.email}</span>
-              </div>
-            )}
+            {/* Recording-as indicator + admin setup link */}
+            <div className="text-sm text-[var(--text-secondary)] mb-3 flex items-center justify-center gap-2">
+              {user && <>Recording as: <span className="font-semibold text-[var(--text-primary)]">{user.email}</span></>}
+              {isAdmin && (
+                <button onClick={() => navigate(`/band/${bandId}/setup`)} className="text-[var(--accent-blue)] font-semibold ml-2 min-h-[44px] px-2">⚙ Setup</button>
+              )}
+            </div>
 
             <Card>
               <DatePickerComp date={sessionDate} onChange={handleDateChange} />
