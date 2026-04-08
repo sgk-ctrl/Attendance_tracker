@@ -216,7 +216,59 @@ WHERE s.band_id = 1 AND s.active = true
 ORDER BY i.display_order, s.last_name, s.first_name;
 ```
 
-## Adding a New Band
+## Creating a Band (via the App)
+
+Admins can create and fully configure bands through the app UI without needing SQL access.
+
+### Step-by-step
+
+1. Log in as an admin user.
+2. On the **Band Selector** screen, you will see a dashed "+" **Add Band** card alongside existing bands.
+3. Tap **Add Band**.
+4. Enter the band name (e.g. "HNPS Senior Band") and a short name (e.g. "Senior Band").
+5. Tap **Create**. The new band appears in the band list.
+6. Tap the **gear icon** on the new band's card.
+7. This opens the **Band Setup** page with 4 tabs: Details, Instruments, Students, Import.
+8. Configure the band using the tabs (see sections below).
+
+## Importing Students from CSV
+
+You can bulk-import students into a band using a CSV file instead of adding them one by one.
+
+### Prepare your CSV
+
+Create a CSV file with these columns:
+
+| Column | Example |
+|--------|---------|
+| `first_name` | Alice |
+| `last_name` | Johnson |
+| `year` | Year 5 |
+| `instrument` | Flute |
+
+Header names are flexible -- "First Name", "first name", "first_name" all work. Instruments that do not already exist for the band will be created automatically.
+
+### Import steps
+
+1. Go to the band's **Setup** page (tap the gear icon on the band card).
+2. Switch to the **Import** tab.
+3. Upload your CSV file using the file upload area.
+4. A preview table appears with rows color-coded for validation (green = valid, red = issues).
+5. Review the preview, then tap **Import**.
+6. A success message shows how many students were imported.
+
+## Configuring Practice Schedule
+
+Each band can have a default practice day and time. This pre-fills the time picker when volunteers take attendance.
+
+1. Go to the band's **Setup** page (tap the gear icon).
+2. On the **Details** tab, set the practice day (e.g. Wednesday) and time (e.g. 7:45 AM).
+3. Tap **Save**.
+4. When a volunteer opens the attendance screen on that day, the time picker will default to the configured time.
+
+## Adding a New Band (via SQL)
+
+You can also create bands via the app (see "Creating a Band" above). The SQL approach below is an alternative for those who prefer direct database access.
 
 If the school adds a Senior Band, Concert Band, or similar:
 

@@ -48,6 +48,7 @@ A mobile-first React web app for tracking rehearsal attendance at HNPS (school b
 |--------|---------|
 | `react-rebuild` | Production (live on Vercel and GitHub Pages) |
 | `dev` | Feature development and testing |
+| `attendance_v2` | Multi-band management feature (band setup, CSV import) |
 | `main` | Legacy vanilla JS version (single HTML file) |
 
 ## Managing Users
@@ -76,6 +77,40 @@ UPDATE allowed_users SET active = false WHERE email = 'parent@example.com';
 SELECT email, name, role, active FROM allowed_users ORDER BY role, name;
 ```
 
+## Admin Features
+
+### Creating a Band via the App
+
+Admins can create and configure bands directly through the app UI instead of using SQL:
+
+1. **Create a band:** On the Band Selector screen, click the dashed "+" Add Band card. Enter a band name and short name, then click Create.
+2. **Configure the band:** Click the gear icon on any band card to open the Band Setup page.
+
+### Band Setup Page
+
+The Band Setup page has 4 tabs:
+
+- **Details** -- Edit band name, short name, and practice schedule (day of week + time). Click Save to persist changes.
+- **Instruments** -- Add instruments by name. Delete instruments that have no students assigned.
+- **Students** -- Add students individually (first name, last name, year, instrument). Activate or deactivate students.
+- **Import** -- Bulk-import students from a CSV file.
+
+### CSV Import
+
+Import students in bulk using a CSV file:
+
+1. Prepare a CSV with columns: `first_name`, `last_name`, `year`, `instrument`
+   - Header names are normalized (e.g. "First Name", "first name", "first_name" all work)
+   - Instruments not already in the band are created automatically
+2. Go to Band Setup > Import tab
+3. Upload the CSV file
+4. Preview the parsed data (rows are color-coded for validation)
+5. Click Import to add all students
+
+### Practice Schedules
+
+Each band can have a practice day and time configured in Band Setup > Details. The `defaultTimeForBand` utility uses this data to pre-fill the time picker when taking attendance.
+
 ## Tech Stack
 
 - **Frontend:** React 19 + Vite 8 + Tailwind CSS 4
@@ -85,6 +120,7 @@ SELECT email, name, role, active FROM allowed_users ORDER BY role, name;
 - **PWA:** `manifest.json` + service worker for offline caching
 - **Routing:** react-router-dom v7 with hash-based routing
 - **Offline:** localStorage for data caching and pending-sync queue
+- **CSV Import:** Papa Parse for student CSV import
 
 ## License
 

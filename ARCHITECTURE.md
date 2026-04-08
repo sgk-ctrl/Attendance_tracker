@@ -20,8 +20,9 @@ app/
 │   │
 │   ├── pages/
 │   │   ├── Login.jsx              # Magic link login form + not-authorized screen
-│   │   ├── BandSelector.jsx       # Band picker (root route "/")
+│   │   ├── BandSelector.jsx       # Band picker (root route "/"), Add Band card (admin)
 │   │   ├── BandHome.jsx           # Main page: attendance setup, reports, events tabs
+│   │   ├── BandSetup.jsx          # Admin band config: 4 tabs (Details, Instruments, Students, Import)
 │   │   ├── AttendanceFlow.jsx     # 3-step attendance flow (tally → resolve → summary)
 │   │   ├── EventAttendance.jsx    # Event-specific attendance taking
 │   │   ├── EventsList.jsx         # Events listing page
@@ -56,6 +57,11 @@ app/
 │   │   │   ├── ProgressIndicator.jsx # 3-step progress bar for attendance flow
 │   │   │   ├── Spinner.jsx        # Loading spinner overlay
 │   │   │   └── ToastContainer.jsx # Toast notification renderer
+│   │   ├── admin/
+│   │   │   ├── BandDetailsTab.jsx # Band name, short name, practice schedule editing
+│   │   │   ├── InstrumentsTab.jsx # Add/delete instruments for a band
+│   │   │   ├── StudentsTab.jsx    # Add/deactivate students, grouped by instrument
+│   │   │   └── CsvImporter.jsx   # CSV file upload, preview, and bulk student import
 │   │   └── ui/
 │   │       ├── Button.jsx         # Reusable button (primary, secondary, success)
 │   │       ├── Card.jsx           # Rounded card container
@@ -67,11 +73,13 @@ app/
 │   ├── hooks/
 │   │   ├── useAttendanceFlow.js   # State machine for tally → resolve → submit → summary
 │   │   ├── useBandData.js         # Fetches band info, instruments, and students
+│   │   ├── useBandManagement.js   # CRUD for band details, instruments, and students (admin)
 │   │   ├── useBands.js            # Fetches list of all bands
-│   │   ├── useReports.js          # Fetches and computes attendance reports
 │   │   ├── useEvents.js           # CRUD for band events
 │   │   ├── useNavGuard.js         # Warns before navigating away with unsaved data
-│   │   └── useOfflineSync.js      # Detects and retries pending offline attendance
+│   │   ├── useOfflineSync.js      # Detects and retries pending offline attendance
+│   │   ├── useReports.js          # Fetches and computes attendance reports
+│   │   └── useStudentImport.js    # CSV parsing (Papa Parse), validation, and bulk student insert
 │   │
 │   ├── context/
 │   │   ├── AuthContext.jsx        # React context for Supabase auth state
@@ -80,7 +88,7 @@ app/
 │   └── lib/
 │       ├── supabase.js            # Supabase client initialization
 │       ├── constants.js           # Day/month names, term dates, cache keys
-│       └── utils.js               # Date formatting, term calc, localStorage helpers
+│       └── utils.js               # Date formatting, term calc, localStorage helpers, defaultTimeForBand
 │
 ├── vite.config.js                 # Vite config (React plugin, Tailwind, base path)
 └── package.json                   # Dependencies and scripts
@@ -143,6 +151,8 @@ This is the core workflow of the app, managed by the `useAttendanceFlow` hook as
 | name | text | Unique. e.g. "HNPS Junior Band" |
 | short_name | text | Nullable. e.g. "Junior Band" |
 | color | text | Hex color, default `#2b6cb0` |
+| practice_day | text | Nullable. Day of week, e.g. "Wednesday" |
+| practice_time | text | Nullable. Time string, e.g. "7:45 AM" |
 | active | boolean | Default true |
 | created_at | timestamptz | Default now() |
 
@@ -345,7 +355,22 @@ The app uses `createHashRouter` from react-router-dom. This ensures deep links w
 
 ## Adding a New Band
 
-To add a new band (e.g. "HNPS Senior Band"):
+### Via the App (recommended)
+
+Admins can create and configure bands entirely through the UI:
+
+1. On the Band Selector screen, click the dashed "+" **Add Band** card
+2. Enter a band name and short name, then click **Create**
+3. The new band appears in the selector. Click the **gear icon** on the band card to open **BandSetup**
+4. In BandSetup, use the 4 tabs to configure the band:
+   - **Details** -- set practice day and time
+   - **Instruments** -- add each instrument section
+   - **Students** -- add students individually
+   - **Import** -- bulk-import students from CSV
+
+### Via SQL (alternative)
+
+You can also create bands directly in Supabase SQL Editor:
 
 ```sql
 -- 1. Create the band
@@ -379,6 +404,21 @@ SELECT id, name FROM instruments WHERE band_id = 2 ORDER BY display_order;
 ```
 
 The app's BandSelector page will automatically show the new band once it exists in the database.
+
+### CSV Import Format
+
+When importing students via the BandSetup Import tab, the CSV file should have these columns:
+
+| Column | Required | Example |
+|--------|----------|---------|
+| `first_name` | Yes | Alice |
+| `last_name` | Yes | Johnson |
+| `year` | Yes | Year 5 |
+| `instrument` | Yes | Flute |
+
+**Header normalization:** The importer accepts common variations such as "First Name", "first name", "first_name", "FirstName". Headers are lowercased and spaces/special characters are converted to underscores before matching.
+
+**Auto-instrument creation:** If the CSV contains an instrument name that does not already exist for the band, the importer automatically creates it before inserting the students.
 
 ## Updating Term Dates
 
