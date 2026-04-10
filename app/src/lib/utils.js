@@ -1,4 +1,4 @@
-import { DAYS, MONTHS, TERM_DATES_2026, CACHE_KEYS } from './constants';
+import { DAYS, MONTHS, TERM_DATES_BY_YEAR, TERM_DATES_2026 } from './constants';
 
 export function formatDate(d) {
   return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -12,9 +12,12 @@ export function dateToISO(d) {
 }
 
 export function calcTerm(d) {
+  const y = d.getFullYear();
   const m = d.getMonth() + 1;
   const day = d.getDate();
-  for (const t of TERM_DATES_2026) {
+  // Use year-specific term dates; fall back to 2026 dates if year not found
+  const termDates = TERM_DATES_BY_YEAR[y] || TERM_DATES_2026;
+  for (const t of termDates) {
     const afterStart = m > t.start[0] || (m === t.start[0] && day >= t.start[1]);
     const beforeEnd = m < t.end[0] || (m === t.end[0] && day <= t.end[1]);
     if (afterStart && beforeEnd) return t.term;
@@ -61,33 +64,35 @@ export function pctTextColor(p) {
   return 'text-[var(--red-600)]';
 }
 
-// localStorage caching
-export function cacheData(instruments, students) {
+// localStorage caching — keyed by bandId so multiple bands don't overwrite each other
+export function cacheData(bandId, instruments, students) {
   try {
-    localStorage.setItem(CACHE_KEYS.INSTRUMENTS, JSON.stringify(instruments));
-    localStorage.setItem(CACHE_KEYS.STUDENTS, JSON.stringify(students));
-    localStorage.setItem(CACHE_KEYS.CACHE_TIME, new Date().toISOString());
+    localStorage.setItem(`hnps_instruments_${bandId}`, JSON.stringify(instruments));
+    localStorage.setItem(`hnps_students_${bandId}`, JSON.stringify(students));
+    localStorage.setItem(`hnps_cache_time_${bandId}`, new Date().toISOString());
   } catch (e) {
     console.warn('Cache write failed', e);
   }
 }
 
-export function getCachedData() {
+export function getCachedData(bandId) {
   try {
-    const instruments = JSON.parse(localStorage.getItem(CACHE_KEYS.INSTRUMENTS));
-    const students = JSON.parse(localStorage.getItem(CACHE_KEYS.STUDENTS));
+    const instruments = JSON.parse(localStorage.getItem(`hnps_instruments_${bandId}`));
+    const students = JSON.parse(localStorage.getItem(`hnps_students_${bandId}`));
     if (instruments && students) return { instruments, students };
   } catch (e) { /* ignore */ }
   return null;
 }
 
-export function savePendingAttendance(dateStr, sessionType, term, year, payload) {
+// bandId is included in the key so pending records for different bands never collide
+export function savePendingAttendance(bandId, dateStr, sessionType, term, year, payload) {
   try {
-    const key = `pending_attendance_${dateStr}_${sessionType}`;
+    const key = `pending_attendance_${bandId}_${dateStr}_${sessionType}`;
     localStorage.setItem(key, JSON.stringify({
       payload,
       date: dateStr,
       sessionType,
+      bandId,
       term,
       year,
       savedAt: new Date().toISOString(),
@@ -108,8 +113,8 @@ export function getPendingAttendanceKeys() {
   return keys;
 }
 
-export function removePendingAttendance(dateStr, sessionType) {
-  const key = `pending_attendance_${dateStr}_${sessionType}`;
+export function removePendingAttendance(bandId, dateStr, sessionType) {
+  const key = `pending_attendance_${bandId}_${dateStr}_${sessionType}`;
   localStorage.removeItem(key);
 }
 

@@ -1,0 +1,30 @@
+name: Keep Supabase Alive
+
+# Pings Supabase daily to prevent the free-tier project from pausing
+# during school holidays. Supabase pauses inactive projects after ~1 week.
+#
+# Setup required:
+#   Add SUPABASE_ANON_KEY as a GitHub repository secret
+#   (Settings → Secrets and variables → Actions → New repository secret)
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # Daily at midnight UTC (10am AEDT)
+  workflow_dispatch:        # Allow manual trigger
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query bands table to keep project active
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://dirdanwihxwfuqldruoy.supabase.co/rest/v1/bands?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Supabase ping status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "WARNING: Supabase returned non-200 status: $STATUS"
+            exit 1
+          fi

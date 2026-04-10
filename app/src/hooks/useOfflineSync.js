@@ -51,6 +51,7 @@ export function useOfflineSync() {
             .select('*')
             .eq('session_date', data.date)
             .eq('session_type', data.sessionType)
+            .eq('band_id', data.bandId)
             .maybeSingle();
           if (findErr) throw findErr;
 
@@ -62,6 +63,7 @@ export function useOfflineSync() {
               .insert({
                 session_date: data.date,
                 session_type: data.sessionType,
+                band_id: data.bandId,
                 term: data.term,
                 year: data.year,
               })

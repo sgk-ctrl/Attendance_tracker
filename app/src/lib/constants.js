@@ -10,7 +10,7 @@ export const AMPM = ['AM','PM'];
 
 export const TERMS = [1, 2, 3, 4];
 
-export const REPORT_YEARS = [2026, 2025];
+export const REPORT_YEARS = [2027, 2026, 2025];
 
 // NSW 2026 school term dates
 export const TERM_DATES_2026 = [
@@ -20,8 +20,16 @@ export const TERM_DATES_2026 = [
   { term: 4, start: [10, 12], end: [12, 17] },
 ];
 
-export const CACHE_KEYS = {
-  INSTRUMENTS: 'hnps_instruments',
-  STUDENTS: 'hnps_students',
-  CACHE_TIME: 'hnps_cache_time',
+// NSW 2027 school term dates (approximate — verify with NSW DoE when confirmed)
+export const TERM_DATES_2027 = [
+  { term: 1, start: [1, 25], end: [4, 2] },
+  { term: 2, start: [4, 19], end: [7, 2] },
+  { term: 3, start: [7, 19], end: [9, 24] },
+  { term: 4, start: [10, 11], end: [12, 17] },
+];
+
+// Year-indexed term dates — add a new entry each January
+export const TERM_DATES_BY_YEAR = {
+  2026: TERM_DATES_2026,
+  2027: TERM_DATES_2027,
 };

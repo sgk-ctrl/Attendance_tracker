@@ -32,10 +32,10 @@ export function useBandData(bandId) {
           setBand(bandRes.data);
           setInstruments(instRes.data || []);
           setStudents(studRes.data || []);
-          cacheData(instRes.data, studRes.data);
+          cacheData(bandId, instRes.data, studRes.data);
         }
       } catch (e) {
-        const cached = getCachedData();
+        const cached = getCachedData(bandId);
         if (cached && !cancelled) {
           setInstruments(cached.instruments);
           setStudents(cached.students);
@@ -63,7 +63,7 @@ export function useBandData(bandId) {
       if (studRes.error) throw studRes.error;
       setInstruments(instRes.data || []);
       setStudents(studRes.data || []);
-      cacheData(instRes.data, studRes.data);
+      cacheData(bandId, instRes.data, studRes.data);
     } catch (e) {
       setError(e.message);
     } finally {

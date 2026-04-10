@@ -280,7 +280,7 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
               const { error: retryErr } = await supabase.from('attendance').insert(validInserts);
               if (retryErr) throw retryErr;
             }
-            removePendingAttendance(dateStr, sessionType);
+            removePendingAttendance(bandId, dateStr, sessionType);
             setHasDataEntered(false);
             setStep(3);
             return { success: true, warning: 'Some students were excluded due to roster changes.' };
@@ -289,18 +289,18 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         }
       }
 
-      removePendingAttendance(dateStr, sessionType);
+      removePendingAttendance(bandId, dateStr, sessionType);
       setHasDataEntered(false);
       setStep(3);
       return { success: true };
     } catch (e) {
-      savePendingAttendance(dateStr, sessionType, term, year, records);
+      savePendingAttendance(bandId, dateStr, sessionType, term, year, records);
       throw e;
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [students, sessionId, attendance, sessionDate, sessionType, term, year]);
+  }, [students, sessionId, attendance, sessionDate, sessionType, term, year, bandId]);
 
   // Summary data
   const getSummaryData = useCallback(() => {
