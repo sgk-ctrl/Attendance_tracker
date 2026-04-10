@@ -180,10 +180,14 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         autoAbsentCount++;
       } else {
         const hasManualData = studs.some(s => newAttendance[s.id] !== undefined);
+        // Smart default: if more than half are present, default all to present
+        // (volunteer unchecks the absent few). Otherwise default to absent
+        // (volunteer checks the present few). This minimises taps.
+        const majorityPresent = count > studs.length / 2;
         if (!hasManualData) {
-          studs.forEach(s => { newAttendance[s.id] = false; });
+          studs.forEach(s => { newAttendance[s.id] = majorityPresent; });
         }
-        mismatches.push({ inst, studs, count });
+        mismatches.push({ inst, studs, count, majorityPresent });
       }
     });
 

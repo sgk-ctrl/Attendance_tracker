@@ -42,9 +42,10 @@ export default function Header({ title = 'HNPS Junior Band', subtitle = 'Attenda
         {user && (
           <div className="relative">
             <button
-              className="bg-white/15 border-none text-white w-9 h-9 min-w-[36px] min-h-[36px] rounded-full text-sm cursor-pointer flex items-center justify-center transition-colors duration-200 active:bg-white/30"
+              className="bg-white/15 border-none text-white w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-base font-semibold cursor-pointer flex items-center justify-center transition-colors duration-200 active:bg-white/30"
               onClick={() => setShowMenu(!showMenu)}
               aria-label="User menu"
+              aria-expanded={showMenu}
               title={user.email}
             >
               {user.email?.charAt(0).toUpperCase() || '?'}

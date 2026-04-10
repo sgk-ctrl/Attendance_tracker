@@ -1,20 +1,36 @@
 import StudentRow from './StudentRow';
 
-export default function ResolveSection({ instrument, students, targetCount, attendance, onToggle, onSelectAll, onDeselectAll }) {
+export default function ResolveSection({ instrument, students, targetCount, majorityPresent, attendance, onToggle, onSelectAll, onDeselectAll }) {
   const checkedCount = students.filter(s => attendance[s.id] === true).length;
   const isResolved = checkedCount === targetCount;
+  const absentTarget = students.length - targetCount;
+  const absentCount = students.length - checkedCount;
+
+  // When most students are present, flip the framing: ask "who is absent?" and
+  // show progress toward the absent target. This matches how volunteers think
+  // when only a few students are missing.
+  const invertedPrompt = majorityPresent;
+  const promptText = invertedPrompt
+    ? `Tap the ${absentTarget} absent student${absentTarget === 1 ? '' : 's'}`
+    : `Tap the ${targetCount} present student${targetCount === 1 ? '' : 's'}`;
+  const statusText = invertedPrompt
+    ? `${absentCount} of ${absentTarget} absent (${students.length} total)`
+    : `${checkedCount} of ${targetCount} present (${students.length} total)`;
 
   return (
     <div className="mb-6">
       <div className="bg-[var(--accent-blue-bg-strong)] border border-[var(--border-card)] rounded-t-lg px-4 py-3.5 font-bold text-[var(--accent-blue-light)] flex justify-between items-start gap-2 text-[15px]">
-        <div>
+        <div className="flex-1 min-w-0">
           {instrument.name}
+          <small className="block text-[11px] font-normal text-[var(--text-muted)] mt-0.5">
+            {promptText}
+          </small>
           <small
             className={`block font-medium text-[13px] mt-0.5 ${
               isResolved ? 'text-[var(--accent-green)]' : 'text-[var(--accent-blue-light)]'
             }`}
           >
-            {checkedCount} of {targetCount} selected ({students.length} total)
+            {statusText}
           </small>
         </div>
         <div className="flex gap-1.5 flex-shrink-0">

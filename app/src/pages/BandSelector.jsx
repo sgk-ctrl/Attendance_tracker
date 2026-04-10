@@ -28,11 +28,13 @@ export default function BandSelector() {
 
         <div className="grid grid-cols-1 gap-3">
           {bands.map(band => (
-            <div
+            <button
               key={band.id}
-              className="bg-[var(--bg-card)] rounded-[16px] p-5 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px] cursor-pointer active:scale-[0.98] transition-transform duration-200 hover:border-[var(--accent-blue-border)] hover:shadow-[var(--shadow-glow)]"
+              type="button"
+              className="w-full text-left bg-[var(--bg-card)] rounded-[16px] p-5 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px] cursor-pointer active:scale-[0.98] transition-transform duration-200 hover:border-[var(--accent-blue-border)] hover:shadow-[var(--shadow-glow)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] min-h-[44px]"
               style={{ borderLeft: `4px solid ${band.color || 'var(--accent-blue)'}` }}
               onClick={() => navigate(`/band/${band.id}`)}
+              aria-label={`${band.name}, ${band.studentCount} students`}
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -46,7 +48,7 @@ export default function BandSelector() {
                   <div className="text-xs text-[var(--text-muted)]">students</div>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 

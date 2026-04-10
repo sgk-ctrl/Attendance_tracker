@@ -54,6 +54,19 @@ export default function AttendanceFlow() {
   const [spinnerText, setSpinnerText] = useState('');
   const [showSpinner, setShowSpinner] = useState(false);
 
+  // Hide "How this works" box after first use — stored in localStorage so repeat volunteers skip it
+  const [showHowItWorks, setShowHowItWorks] = useState(() => {
+    try {
+      return localStorage.getItem('hnps_hide_tally_instructions') !== '1';
+    } catch {
+      return true;
+    }
+  });
+  const dismissHowItWorks = () => {
+    try { localStorage.setItem('hnps_hide_tally_instructions', '1'); } catch { /* ignore */ }
+    setShowHowItWorks(false);
+  };
+
   // Nav guard
   const blocker = useNavGuard(flow.hasDataEntered);
 
@@ -103,10 +116,15 @@ export default function AttendanceFlow() {
 
   const allFilled = enteredCount >= instruments.length;
 
-  // Handle next from tally
+  // Handle next from tally — never silently fails. Always toasts the blocker
+  // and scrolls to the first unfilled instrument so volunteers know why nothing happened.
   const handleNext = useCallback(() => {
     if (!allFilled) {
-      // Scroll to first unfilled
+      const remaining = instruments.length - enteredCount;
+      toast(
+        `${remaining} instrument${remaining === 1 ? '' : 's'} still need a count. Scrolling you to the next one.`,
+        'error'
+      );
       const unfilled = visibleInstruments.find(inst => flow.tallies[inst.id] === undefined);
       if (unfilled) {
         const el = document.getElementById(`card-${unfilled.id}`);
@@ -116,7 +134,7 @@ export default function AttendanceFlow() {
     }
     flow.goToResolve();
     window.scrollTo(0, 0);
-  }, [allFilled, flow, visibleInstruments]);
+  }, [allFilled, flow, visibleInstruments, instruments.length, enteredCount, toast]);
 
   // Handle submit
   const handleSubmit = async () => {
@@ -201,17 +219,26 @@ export default function AttendanceFlow() {
               </EmptyState>
             ) : (
               <>
-                <div className="rounded-xl p-4 mb-4 border border-[var(--accent-blue-border)] bg-[var(--accent-blue-glow)]">
-                  <p className="text-sm font-semibold text-[var(--accent-blue-light)] mb-1">
-                    How this works
-                  </p>
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    Count the students in each instrument section and enter the number below.
-                    You must enter a count for <strong className="text-[var(--text-primary)]">every instrument</strong> before
-                    you can proceed. Use <strong className="text-[var(--text-primary)]">All</strong> if everyone is present,
-                    or <strong className="text-[var(--text-primary)]">None</strong> if the section is empty.
-                  </p>
-                </div>
+                {showHowItWorks && (
+                  <div className="rounded-xl p-4 mb-4 border border-[var(--accent-blue-border)] bg-[var(--accent-blue-glow)] relative">
+                    <button
+                      onClick={dismissHowItWorks}
+                      aria-label="Dismiss instructions"
+                      className="absolute top-2 right-2 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-transparent border-none cursor-pointer rounded-full"
+                    >
+                      &times;
+                    </button>
+                    <p className="text-sm font-semibold text-[var(--accent-blue-light)] mb-1 pr-10">
+                      How this works
+                    </p>
+                    <p className="text-sm text-[var(--text-secondary)] pr-10">
+                      Count the students in each instrument section and enter the number below.
+                      You must enter a count for <strong className="text-[var(--text-primary)]">every instrument</strong> before
+                      you can proceed. Use <strong className="text-[var(--text-primary)]">All</strong> if everyone is present,
+                      or <strong className="text-[var(--text-primary)]">None</strong> if the section is empty.
+                    </p>
+                  </div>
+                )}
 
                 {!allFilled && enteredCount > 0 && (
                   <div className="rounded-lg px-4 py-2 mb-3 text-sm text-[var(--accent-orange)] bg-[var(--accent-orange-bg)] border border-[var(--accent-orange-border)]">
@@ -268,12 +295,13 @@ export default function AttendanceFlow() {
               </div>
             )}
 
-            {flow.mismatchInstruments.map(({ inst, studs, count }) => (
+            {flow.mismatchInstruments.map(({ inst, studs, count, majorityPresent }) => (
               <ResolveSection
                 key={inst.id}
                 instrument={inst}
                 students={studs}
                 targetCount={count}
+                majorityPresent={majorityPresent}
                 attendance={flow.attendance}
                 onToggle={flow.toggleStudent}
                 onSelectAll={() => flow.setInstrumentAttendance(inst.id, true)}

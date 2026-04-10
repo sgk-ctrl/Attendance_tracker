@@ -72,12 +72,23 @@ export default function BandHome() {
     }
   }, [existingSession, isAdmin, toast]);
 
-  const defaultTime = defaultTimeForDay(sessionDate.getDay());
-  const [timeState, setTimeState] = useState({
-    hour: defaultTime.hour,
-    minute: defaultTime.minute,
-    ampm: defaultTime.ampm,
-  });
+  // Session time memory — remembers the last-used time per band + day-of-week.
+  // Volunteers with a fixed weekly schedule never need to re-select the time.
+  const rememberedTimeKey = (band, day) => `hnps_last_time_${band}_${day}`;
+  const getInitialTime = (band, date) => {
+    const day = date.getDay();
+    try {
+      const saved = localStorage.getItem(rememberedTimeKey(band, day));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.hour && parsed.minute && parsed.ampm) return parsed;
+      }
+    } catch { /* ignore */ }
+    const dt = defaultTimeForDay(day);
+    return { hour: dt.hour, minute: dt.minute, ampm: dt.ampm };
+  };
+
+  const [timeState, setTimeState] = useState(() => getInitialTime(bandId, sessionDate));
 
   const sessionTime = buildSessionTime(timeState.hour, timeState.minute, timeState.ampm);
   const sessionType = sessionTypeFromTime(timeState.hour, timeState.ampm);
@@ -111,18 +122,24 @@ export default function BandHome() {
     checkExisting();
   }, [checkExisting]);
 
-  // Handle date change
+  // Handle date change — uses remembered time for the new day if one exists
   const handleDateChange = (d) => {
     setSessionDate(d);
     setTerm(calcTerm(d));
     setYear(d.getFullYear());
-    const dt = defaultTimeForDay(d.getDay());
-    setTimeState({ hour: dt.hour, minute: dt.minute, ampm: dt.ampm });
+    setTimeState(getInitialTime(bandId, d));
   };
 
-  // Handle time change
+  // Handle time change — persists the selection so future sessions on the
+  // same weekday default to this time for this band
   const handleTimeChange = ({ hour, minute, ampm }) => {
     setTimeState({ hour, minute, ampm });
+    try {
+      localStorage.setItem(
+        rememberedTimeKey(bandId, sessionDate.getDay()),
+        JSON.stringify({ hour, minute, ampm })
+      );
+    } catch { /* ignore */ }
   };
 
   // Tab change - auto-load reports
@@ -241,13 +258,22 @@ export default function BandHome() {
                   View / Edit Existing
                 </Button>
                 {isAdmin && (
-                  <button
-                    onClick={handleResetSession}
-                    disabled={resetting}
-                    className="py-3 px-4 rounded-xl text-sm font-semibold border border-[var(--accent-red)] text-[var(--accent-red)] bg-transparent hover:bg-[var(--accent-red-bg)] transition-all disabled:opacity-50 min-h-[44px]"
-                  >
-                    {resetting ? 'Deleting...' : 'Reset This Session'}
-                  </button>
+                  <details className="mt-6 pt-4 border-t border-dashed border-[var(--border-subtle)]">
+                    <summary className="text-xs text-[var(--text-muted)] cursor-pointer min-h-[44px] py-3 flex items-center gap-2 select-none">
+                      <span aria-hidden="true">&#9888;</span>
+                      Danger zone (admin only)
+                    </summary>
+                    <button
+                      onClick={handleResetSession}
+                      disabled={resetting}
+                      className="w-full mt-2 py-3 px-4 rounded-xl text-sm font-semibold border border-[var(--accent-red)] text-[var(--accent-red)] bg-transparent hover:bg-[var(--accent-red-bg)] transition-all disabled:opacity-50 min-h-[44px]"
+                    >
+                      {resetting ? 'Deleting...' : 'Reset This Session'}
+                    </button>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-relaxed">
+                      Permanently deletes this session's attendance records. Cannot be undone.
+                    </p>
+                  </details>
                 )}
               </div>
             ) : (

@@ -26,16 +26,18 @@ export default function TermBadgeEditor({ term, year, onTermChange }) {
   }
 
   return (
-    <div className="mt-2">
+    <div className="mt-2 flex items-center gap-1">
       <span className="inline-block bg-[var(--surface-elevated)] text-[var(--text-secondary)] px-3.5 py-1.5 rounded-full text-[13px] font-medium">
         Term {term}, {year}
       </span>
-      <span
-        className="text-xs text-[var(--accent-blue-light)] cursor-pointer ml-1.5 underline inline-block align-middle"
+      <button
+        type="button"
+        className="text-xs text-[var(--accent-blue-light)] underline bg-transparent border-none cursor-pointer px-3 min-h-[44px] min-w-[44px]"
         onClick={() => setEditing(true)}
+        aria-label={`Edit term (currently Term ${term})`}
       >
         edit
-      </span>
+      </button>
     </div>
   );
 }

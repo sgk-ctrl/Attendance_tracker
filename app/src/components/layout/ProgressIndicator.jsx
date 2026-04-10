@@ -1,38 +1,51 @@
 export default function ProgressIndicator({ currentStep }) {
-  // Steps: 1=Tally, 2=Resolve, 3=Summary
-  // Map to visual steps: 1, 2, 3, checkmark
-  const steps = [1, 2, 3, '\u2713'];
-  const stepMap = { 1: 1, 2: 2, 3: 4 }; // step 3 (summary) maps to visual step 4
-  const current = stepMap[currentStep] || 1;
+  // Steps: 1=Count, 2=Check, 3=Done
+  const steps = [
+    { num: 1, label: 'Count' },
+    { num: 2, label: 'Check' },
+    { num: 3, label: 'Done' },
+  ];
 
   return (
-    <div className="flex justify-center items-center gap-0 pt-2.5 px-5 max-w-[600px] mx-auto">
-      {steps.map((s, i) => {
-        const stepNum = i + 1;
-        let cls = 'w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 ';
-        if (stepNum < current || currentStep === 3) {
-          cls += 'bg-[var(--accent-green)] text-white';
-        } else if (stepNum === current) {
-          cls += 'bg-[var(--accent-blue)] text-white';
-        } else {
-          cls += 'bg-[rgba(148,163,184,0.15)] text-[var(--text-muted)]';
-        }
+    <div className="pt-3 px-5 max-w-[600px] mx-auto">
+      <div className="flex justify-center items-start gap-0" role="progressbar" aria-valuemin="1" aria-valuemax="3" aria-valuenow={currentStep}>
+        {steps.map((s, i) => {
+          const isComplete = s.num < currentStep;
+          const isCurrent = s.num === currentStep;
+          let circleCls = 'w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 transition-colors ';
+          let labelCls = 'text-[11px] mt-1 font-semibold transition-colors ';
+          if (isComplete) {
+            circleCls += 'bg-[var(--accent-green)] text-white';
+            labelCls += 'text-[var(--accent-green)]';
+          } else if (isCurrent) {
+            circleCls += 'bg-[var(--accent-blue)] text-white';
+            labelCls += 'text-[var(--accent-blue-light)]';
+          } else {
+            circleCls += 'bg-[rgba(148,163,184,0.15)] text-[var(--text-muted)]';
+            labelCls += 'text-[var(--text-muted)]';
+          }
 
-        return (
-          <div key={i} className="flex items-center gap-0">
-            <div className={cls}>{s}</div>
-            {i < steps.length - 1 && (
-              <div
-                className={`h-0.5 w-8 flex-shrink-0 ${
-                  stepNum < current || currentStep === 3
-                    ? 'bg-[var(--accent-green)]'
-                    : 'bg-[rgba(148,163,184,0.15)]'
-                }`}
-              />
-            )}
-          </div>
-        );
-      })}
+          return (
+            <div key={s.num} className="flex items-start gap-0">
+              <div className="flex flex-col items-center">
+                <div className={circleCls} aria-label={`Step ${s.num}: ${s.label}`}>
+                  {isComplete ? '\u2713' : s.num}
+                </div>
+                <div className={labelCls}>{s.label}</div>
+              </div>
+              {i < steps.length - 1 && (
+                <div
+                  className={`h-0.5 w-10 flex-shrink-0 mt-4 mx-1 ${
+                    s.num < currentStep
+                      ? 'bg-[var(--accent-green)]'
+                      : 'bg-[rgba(148,163,184,0.15)]'
+                  }`}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
