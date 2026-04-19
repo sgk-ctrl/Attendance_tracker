@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,22 @@ export default function Login() {
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [notAuthorized, setNotAuthorized] = useState(false);
+
+  // Cooldown timer — prevents rate-limit errors by disabling the button
+  // for 60 seconds after each magic link send
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownRef = useRef(null);
+  const startCooldown = useCallback(() => {
+    setCooldown(60);
+    clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+  useEffect(() => () => clearInterval(cooldownRef.current), []);
 
   // If already logged in, check authorization then redirect
   if (loading) {
@@ -65,13 +81,15 @@ export default function Login() {
       });
 
       if (signInError) {
-        if (signInError.message?.includes('rate')) {
-          setError('Too many requests. Please wait a moment and try again.');
+        if (signInError.message?.includes('rate') || signInError.status === 429) {
+          setError('Too many attempts. Please wait 60 seconds before trying again.');
+          startCooldown();
         } else {
           setError(signInError.message);
         }
       } else {
         setSent(true);
+        startCooldown(); // Prevent immediate re-send even after success
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -154,10 +172,10 @@ export default function Login() {
 
                 <button
                   type="submit"
-                  disabled={sending}
+                  disabled={sending || cooldown > 0}
                   className="bg-[var(--accent-blue)] text-white border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {sending ? 'Sending...' : 'Send Magic Link'}
+                  {sending ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send Magic Link'}
                 </button>
               </form>
             </>
