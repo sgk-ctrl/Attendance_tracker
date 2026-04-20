@@ -13,12 +13,12 @@ A mobile-first React web app for tracking rehearsal attendance at HNPS (school b
    ```bash
    cd app && npm install
    ```
-3. Create `.env` in the `app/` directory with your Supabase credentials
+3. (Optional) Create `.env` in the `app/` directory to override the default Supabase credentials
    ```
    VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key
+   VITE_SUPABASE_KEY=your-anon-key
    ```
-   > **Note:** The Supabase URL and anon key are currently hardcoded in `app/src/lib/supabase.js`. For local development you can either update that file directly or refactor it to read from environment variables.
+   > **Note:** The app has hardcoded fallback values in `app/src/lib/supabase.js`, so env vars are not required. If both are set, env vars take precedence. The `.env` file is git-ignored.
 4. Start the dev server
    ```bash
    npm run dev
@@ -85,6 +85,7 @@ SELECT email, name, role, active FROM allowed_users ORDER BY role, name;
 - **PWA:** `manifest.json` + service worker for offline caching
 - **Routing:** react-router-dom v7 with hash-based routing
 - **Offline:** localStorage for data caching and pending-sync queue
+- **CI:** GitHub Actions keep-alive workflow pings Supabase daily to prevent free-tier pausing (requires `SUPABASE_ANON_KEY` GitHub secret)
 
 ## License
 

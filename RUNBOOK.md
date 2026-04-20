@@ -54,8 +54,10 @@ You stay signed in until you manually sign out or clear your browser data.
 **Resolving mismatches (Step 2):**
 
 12. The app automatically handles sections where everyone is present or everyone is absent. You do not need to do anything for those.
-13. For sections where the count does not match, you will see a list of student names. Tap the name of each student who **is present**. A green tick will appear next to their name.
-14. You must select exactly the number of students you counted. For example, if you entered 5 for Flute (out of 7 expected), you must tap exactly 5 names.
+13. For sections where the count does not match, you will see a list of student names.
+    - If **most students are absent** (count is half or fewer), tap the students who **are present**. A green tick will appear next to their name.
+    - If **most students are present** (count is more than half), all students start as present and the prompt asks you to tap the students who **are absent**.
+14. You must select exactly the right number of students. For example, if you entered 5 for Flute (out of 7 expected), either 5 must be marked present or 2 must be marked absent.
 15. The bar at the bottom tells you how many sections still need resolution.
 16. Once all sections show "resolved", tap **"Submit Attendance"**.
 
@@ -90,8 +92,8 @@ If attendance was recorded for the wrong date or needs to be completely redone:
 
 1. On the main screen, select the date and time of the session you want to delete.
 2. You will see the orange "Attendance already recorded" banner.
-3. Below the "View / Edit Existing" button, you will see a red **"Reset This Session"** button. (This button only appears if you are an admin.)
-4. Tap "Reset This Session".
+3. Below the "View / Edit Existing" button, expand the **"Danger zone (admin only)"** section. (This section only appears if you are an admin.)
+4. Tap the red **"Reset This Session"** button inside the danger zone.
 5. Confirm the deletion when prompted.
 6. The session and all its attendance records will be permanently deleted.
 7. You can now tap "Start Attendance" to record fresh attendance for that date and time.
@@ -263,20 +265,22 @@ If the school adds a Senior Band, Concert Band, or similar:
 
 ## Updating Term Dates for Next Year
 
-The app needs to know the school term dates so it can automatically detect which term a rehearsal falls in. At the start of each year, add the new term dates.
+The app needs to know the school term dates so it can automatically detect which term a rehearsal falls in.
+
+**2026 and 2027 dates are already set up** in both the database and the code. You only need to add new years going forward (2028+), typically in January each year.
 
 1. Open the Supabase SQL Editor.
-2. Run the following, replacing the dates with the actual NSW school term dates for 2027:
+2. Run the following, replacing the dates with the actual NSW school term dates for the new year:
    ```sql
    INSERT INTO term_dates (year, term, start_date, end_date) VALUES
-     (2027, 1, '2027-01-27', '2027-04-01'),
-     (2027, 2, '2027-04-19', '2027-07-02'),
-     (2027, 3, '2027-07-19', '2027-09-24'),
-     (2027, 4, '2027-10-11', '2027-12-16');
+     (2028, 1, '2028-01-27', '2028-04-06'),
+     (2028, 2, '2028-04-24', '2028-07-07'),
+     (2028, 3, '2028-07-24', '2028-09-29'),
+     (2028, 4, '2028-10-16', '2028-12-20');
    ```
 3. You can find the official NSW term dates on the Department of Education website each year.
 
-Note: The app also has hardcoded term dates in its code as a fallback. For 2027 and beyond, the developer will need to update the code as well, or refactor the app to read dates from the database. For now, updating the database is sufficient if the developer also updates the `constants.js` file.
+Note: The developer also needs to add the new year's dates to `constants.js` and update `REPORT_YEARS`. The `calcTerm()` function is year-aware, so it will automatically use the correct dates once they are added.
 
 ## Troubleshooting
 
@@ -291,11 +295,17 @@ Note: The app also has hardcoded term dates in its code as a fallback. For 2027 
 - Supabase free tier has email rate limits: **4 emails per hour**. If you or others have requested multiple magic links recently, wait an hour and try again.
 - Try a different email address if you have one on the approved list.
 
+### "Too many requests" or button shows a countdown
+
+- After sending a magic link, the button shows a **60-second countdown** ("Wait 59s..."). This is normal -- just wait for the timer to finish before trying again.
+- If you see a "Too many requests" error, Supabase's rate limit has been hit. The app automatically starts the 60-second countdown. Wait for it to expire and try once more.
+- Supabase free tier allows **4 magic link emails per hour**. If multiple volunteers are trying to log in at the same time, some may need to wait.
+
 ### "App shows blank screen"
 
 - **Hard refresh** the page: on iPhone Safari, pull down on the page to refresh. On Android Chrome, tap the three dots menu and tap "Reload". On a computer, press Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac).
 - **Clear the app data**: go to your browser settings, find "Clear browsing data" or "Website data", and clear data for the app URL.
-- **Check if Supabase is paused**: the Supabase free tier pauses projects after 7 days of inactivity. If the project is paused, the app will not load any data. Go to https://supabase.com/dashboard/project/dirdanwihxwfuqldruoy and click "Restore" if you see a paused message.
+- **Check if Supabase is paused**: the Supabase free tier pauses projects after 7 days of inactivity. A GitHub Actions keep-alive workflow (`.github/workflows/keep-alive.yml`) pings Supabase daily to prevent this automatically. If the project is still paused, check that the `SUPABASE_ANON_KEY` GitHub secret is set in the repo settings. To restore manually, go to https://supabase.com/dashboard/project/dirdanwihxwfuqldruoy and click "Restore".
 
 ### "Data not saving"
 

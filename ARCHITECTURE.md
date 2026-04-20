@@ -78,9 +78,9 @@ app/
 │   │   └── ToastContext.jsx       # React context for toast notifications
 │   │
 │   └── lib/
-│       ├── supabase.js            # Supabase client initialization
-│       ├── constants.js           # Day/month names, term dates, cache keys
-│       └── utils.js               # Date formatting, term calc, localStorage helpers
+│       ├── supabase.js            # Supabase client initialization (env vars with hardcoded fallback)
+│       ├── constants.js           # Day/month names, TERM_DATES_2026/2027, TERM_DATES_BY_YEAR, REPORT_YEARS
+│       └── utils.js               # Date formatting, year-aware calcTerm(), localStorage helpers
 │
 ├── vite.config.js                 # Vite config (React plugin, Tailwind, base path)
 └── package.json                   # Dependencies and scripts
@@ -116,8 +116,9 @@ This is the core workflow of the app, managed by the `useAttendanceFlow` hook as
    - Count matches expected: auto-mark all students present.
    - Count is zero: auto-mark all students absent.
    - Count differs: add to mismatch list for manual resolution.
-3. For mismatched sections, user taps individual student names to mark them present.
-4. Validation ensures the number of checked students matches the tally count for each section.
+3. For mismatched sections where the count is less than or equal to half the expected students, users tap individual student names to mark them **present** (default absent).
+4. For mismatched sections where the count exceeds half the expected students, students default to **present** and the prompt is inverted -- users tap the students who are **absent** ("Tap the N absent student(s)").
+5. Validation ensures the number of checked students matches the tally count for each section.
 
 **Step 3 -- Submit and Summary**
 1. User taps "Submit Attendance" (only enabled when all sections are resolved).
@@ -130,8 +131,8 @@ This is the core workflow of the app, managed by the `useAttendanceFlow` hook as
 
 ### Offline resilience
 
-- `useBandData` caches instruments and students to localStorage on every successful fetch, and falls back to the cache if the network fails.
-- `useOfflineSync` scans localStorage for `pending_attendance_*` keys and shows a sync banner on BandHome.
+- `useBandData` caches instruments and students to localStorage on every successful fetch using band-scoped keys (e.g. `hnps_instruments_${bandId}`), and falls back to the cache if the network fails. The old global `CACHE_KEYS` constant has been removed.
+- `useOfflineSync` scans localStorage for `pending_attendance_*` keys and shows a sync banner on BandHome. Pending attendance keys now include bandId: `pending_attendance_${bandId}_${dateStr}_${sessionType}`. The `retrySync()` function filters by `band_id` on session lookup and creation.
 - The service worker (`sw.js`) uses a stale-while-revalidate strategy for static assets and explicitly skips caching Supabase API calls.
 
 ## Database Schema
@@ -310,7 +311,7 @@ Key points:
 1. User visits the app and is not authenticated.
 2. `ProtectedRoute` in `App.jsx` checks `useAuth()` -- if no user, redirects to `/login`.
 3. User enters their email on the login screen.
-4. `supabase.auth.signInWithOtp()` sends a magic link to that email address.
+4. `supabase.auth.signInWithOtp()` sends a magic link to that email address. The send button then enters a 60-second cooldown ("Wait 59s" countdown) to prevent rate-limit abuse. A 429 rate-limit response from Supabase also triggers this cooldown.
 5. User clicks the magic link in their email. The link redirects back to the app with auth tokens in the URL hash.
 6. `supabase.auth.onAuthStateChange()` fires in `AuthContext.jsx`, setting the user state.
 7. `Login.jsx` checks if the user's email exists in the `allowed_users` table.
@@ -339,6 +340,9 @@ The app uses CSS custom properties with `prefers-color-scheme` media queries. Vo
 
 ### Why Vercel over GitHub Pages for production
 Vercel provides clean URLs without hash routing (SPA rewrites via `vercel.json`), automatic HTTPS, and instant deploys on push. GitHub Pages requires hash routing and has no server-side rewrite support, so it serves as a backup deployment.
+
+### Why the resolve prompt inverts for majority-present sections
+When a section's count exceeds half the expected students, most students are present. Asking the volunteer to tap the 2 absent students is faster and less error-prone than tapping 15 present ones. The prompt switches to "Tap the N absent student(s)" and defaults everyone to present, which is a behavioral design choice that optimizes for the common case.
 
 ### Why hash router
 The app uses `createHashRouter` from react-router-dom. This ensures deep links work on both Vercel (which has SPA rewrites) and GitHub Pages (which does not). Hash-based routes like `/#/band/1/attendance` work everywhere without server configuration.
@@ -382,22 +386,18 @@ The app's BandSelector page will automatically show the new band once it exists 
 
 ## Updating Term Dates
 
-The `term_dates` table stores the official NSW school term dates. The app also has hardcoded fallback dates in `lib/constants.js` (`TERM_DATES_2026`). To update for 2027:
+The `term_dates` table stores the official NSW school term dates. The app also has hardcoded fallback dates in `lib/constants.js` (`TERM_DATES_2026`, `TERM_DATES_2027`) exposed via `TERM_DATES_BY_YEAR`. The `calcTerm()` function in `utils.js` is year-aware -- it looks up the correct year's dates automatically.
+
+**2026 and 2027 dates are already in both the database and the code.** `REPORT_YEARS` already includes 2027. To add future years (2028+):
 
 ### Database update
 ```sql
--- Add 2027 term dates (update these with actual NSW dates when published)
 INSERT INTO term_dates (year, term, start_date, end_date) VALUES
-  (2027, 1, '2027-01-27', '2027-04-01'),
-  (2027, 2, '2027-04-19', '2027-07-02'),
-  (2027, 3, '2027-07-19', '2027-09-24'),
-  (2027, 4, '2027-10-11', '2027-12-16');
+  (2028, 1, '2028-01-27', '2028-04-06'),
+  (2028, 2, '2028-04-24', '2028-07-07'),
+  (2028, 3, '2028-07-24', '2028-09-29'),
+  (2028, 4, '2028-10-16', '2028-12-20');
 ```
 
 ### Code update
-Update the `TERM_DATES_2026` constant in `app/src/lib/constants.js` to include 2027 dates, or refactor the `calcTerm()` function in `app/src/lib/utils.js` to read from the database instead of using hardcoded values.
-
-Also update `REPORT_YEARS` in `constants.js` to include 2027:
-```js
-export const REPORT_YEARS = [2027, 2026, 2025];
-```
+Add a `TERM_DATES_2028` constant in `constants.js`, add it to `TERM_DATES_BY_YEAR`, and add 2028 to `REPORT_YEARS`.
