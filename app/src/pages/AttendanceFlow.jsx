@@ -321,13 +321,23 @@ export default function AttendanceFlow() {
                   ? `${unresolvedCount} section(s) still need resolution`
                   : 'All sections resolved'}
               </div>
-              <Button
-                variant="success"
-                disabled={unresolvedCount > 0 || flow.submitting}
-                onClick={handleSubmit}
-              >
-                {flow.submitting ? 'Saving...' : 'Submit Attendance'}
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => { flow.setStep(1); window.scrollTo(0, 0); }}
+                >
+                  Edit Counts
+                </Button>
+                <Button
+                  variant="success"
+                  className="flex-[2]"
+                  disabled={unresolvedCount > 0 || flow.submitting}
+                  onClick={handleSubmit}
+                >
+                  {flow.submitting ? 'Saving...' : 'Submit Attendance'}
+                </Button>
+              </div>
             </div>
           </div>
         )}
