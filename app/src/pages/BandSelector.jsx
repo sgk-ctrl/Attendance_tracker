@@ -21,12 +21,19 @@ export default function BandSelector() {
 
   return (
     <div>
-      <Header title="HNPS Band" subtitle="Select your band" />
+      <Header title="Bandroll" subtitle="Select your band" />
       <Spinner show={loading} text="Loading bands..." />
 
       <main className="p-5 max-w-[600px] mx-auto animate-fadeIn">
         {error && (
-          <div className="text-center text-[var(--accent-red)] p-3 mb-4 bg-[var(--accent-red-bg)] border border-[var(--accent-red-border)] rounded-lg text-sm">
+          <div
+            className="text-center p-3 mb-4 rounded-[14px] text-sm"
+            style={{
+              color: 'var(--accent-red)',
+              background: 'var(--accent-red-bg)',
+              border: '1px solid var(--accent-red-border)',
+            }}
+          >
             {error}
           </div>
         )}
@@ -42,21 +49,38 @@ export default function BandSelector() {
             <button
               key={band.id}
               type="button"
-              className="w-full text-left bg-[var(--bg-card)] rounded-[16px] p-5 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px] cursor-pointer active:scale-[0.98] transition-transform duration-200 hover:border-[var(--accent-blue-border)] hover:shadow-[var(--shadow-glow)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-blue)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] min-h-[44px]"
-              style={{ borderLeft: `4px solid ${band.color || 'var(--accent-blue)'}` }}
+              className="w-full text-left rounded-[20px] p-5 cursor-pointer active:scale-[0.98] transition-transform duration-200 focus:outline-none min-h-[44px] relative overflow-hidden"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-card)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+                borderLeft: `4px solid ${band.color || '#4f46e5'}`,
+              }}
               onClick={() => navigate(`/band/${band.id}`)}
               aria-label={`${band.name}, ${band.studentCount} students`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-lg text-[var(--text-primary)]">{band.name}</div>
+                  <div
+                    className="font-extrabold text-lg"
+                    style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.2px' }}
+                  >
+                    {band.name}
+                  </div>
                   {band.short_name && (
-                    <div className="text-xs text-[var(--text-muted)] mt-0.5">{band.short_name}</div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{band.short_name}</div>
                   )}
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-[var(--accent-blue-light)]">{band.studentCount}</div>
-                  <div className="text-xs text-[var(--text-muted)]">students</div>
+                  <div
+                    className="text-2xl font-extrabold"
+                    style={{ fontFamily: 'var(--font-display)', color: 'var(--accent-orange-light, #fbbf24)', lineHeight: 1 }}
+                  >
+                    {band.studentCount}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)' }}>students</div>
                 </div>
               </div>
             </button>
@@ -65,7 +89,8 @@ export default function BandSelector() {
 
         <div className="mt-6 text-center">
           <button
-            className="text-sm text-[var(--accent-blue-light)] font-semibold underline cursor-pointer bg-transparent border-none min-h-[44px] py-3"
+            className="text-sm font-semibold underline cursor-pointer bg-transparent border-none min-h-[44px] py-3"
+            style={{ color: 'var(--accent-blue-light)', fontFamily: 'var(--font-display)' }}
             onClick={() => navigate('/dashboard')}
           >
             View Dashboard
@@ -75,7 +100,8 @@ export default function BandSelector() {
         {isAdmin && (
           <div className="mt-2 text-center">
             <button
-              className="text-sm text-[var(--accent-blue-light)] font-semibold underline cursor-pointer bg-transparent border-none min-h-[44px] py-3"
+              className="text-sm font-semibold underline cursor-pointer bg-transparent border-none min-h-[44px] py-3"
+              style={{ color: 'var(--accent-blue-light)', fontFamily: 'var(--font-display)' }}
               onClick={() => navigate('/admin')}
             >
               Admin Panel
@@ -84,7 +110,14 @@ export default function BandSelector() {
         )}
 
         <div className="mt-4 text-center">
-          <a href="privacy.html" target="_blank" className="text-sm text-[var(--text-muted)] underline min-h-[44px] py-3 inline-flex items-center">Privacy Policy</a>
+          <a
+            href="privacy.html"
+            target="_blank"
+            className="text-sm underline min-h-[44px] py-3 inline-flex items-center"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Privacy Policy
+          </a>
         </div>
       </main>
     </div>

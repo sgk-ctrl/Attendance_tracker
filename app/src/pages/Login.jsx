@@ -30,10 +30,10 @@ export default function Login() {
   // If already logged in, check authorization then redirect
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-gradient)' }}>
         <div className="text-center">
           <div className="spinner-circle mx-auto mb-3" />
-          <div className="text-sm text-[var(--text-secondary)]">Signing you in...</div>
+          <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Signing you in...</div>
         </div>
       </div>
     );
@@ -106,15 +106,26 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Header gradient matching the app */}
-      <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-5 py-6 text-center border-b border-[rgba(59,130,246,0.1)]">
-        <h1 className="text-2xl font-bold tracking-tight">HNPS Junior Band</h1>
-        <div className="text-sm text-white/80 mt-1">Attendance Tracker</div>
+    <div className="min-h-screen" style={{ background: 'var(--bg-gradient)' }}>
+      <div
+        className="text-white px-5 py-6 text-center"
+        style={{
+          background: 'linear-gradient(160deg, #0f0c29 0%, #1e1b4b 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        }}
+      >
+        <h1
+          className="text-2xl font-extrabold tracking-tight"
+          style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.3px' }}
+        >
+          Bandroll
+        </h1>
+        <div className="text-sm mt-1" style={{ color: 'rgba(240,238,255,0.5)' }}>HNPS Band Attendance</div>
       </div>
 
       <main className="p-5 max-w-[400px] mx-auto mt-8 animate-fadeIn">
-        <div className="bg-[var(--bg-card)] rounded-[16px] p-6 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px]">
+        <div className="p-6" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1px solid var(--border-card)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
           {notAuthorized ? (
             <div className="text-center">
               <div className="text-3xl mb-3">&#128683;</div>
@@ -124,7 +135,8 @@ export default function Login() {
               </div>
               <button
                 onClick={handleSignOut}
-                className="bg-[var(--accent-blue)] text-white border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200"
+                className="text-[#1a0a00] border-none rounded-xl px-5 py-3 text-sm font-bold cursor-pointer w-full active:scale-[0.98] transition-transform duration-200"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)', boxShadow: 'var(--shadow-amber-glow)', fontFamily: 'var(--font-display)' }}
               >
                 Sign in with a different account
               </button>
@@ -173,7 +185,8 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={sending || cooldown > 0}
-                  className="bg-[var(--accent-blue)] text-white border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="text-[#1a0a00] border-none rounded-xl px-5 py-3 text-sm font-bold cursor-pointer w-full active:scale-[0.98] transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)', boxShadow: 'var(--shadow-amber-glow)', fontFamily: 'var(--font-display)' }}
                 >
                   {sending ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send Magic Link'}
                 </button>
