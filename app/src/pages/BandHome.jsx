@@ -19,6 +19,8 @@ import TimePicker from '../components/attendance/TimePicker';
 import TermBadgeEditor from '../components/attendance/TermBadge';
 import ReportFilters from '../components/reports/ReportFilters';
 import DetailedRegister from '../components/reports/DetailedRegister';
+import InstrumentReport from '../components/reports/InstrumentReport';
+import StudentReport from '../components/reports/StudentReport';
 import ExportButtons from '../components/reports/ExportButtons';
 import EventCard from '../components/events/EventCard';
 import EmptyState from '../components/ui/EmptyState';
@@ -273,62 +275,134 @@ export default function BandHome() {
                     <p className="text-[11px] text-[var(--text-muted)] mt-2 leading-relaxed">
                       Permanently deletes this session's attendance records. Cannot be undone.
                     </p>
+                    <button
+                      onClick={() => navigate(`/band/${bandId}/admin/sessions`)}
+                      className="w-full mt-3 py-3 px-4 rounded-xl text-sm font-semibold border border-[var(--accent-blue-border)] text-[var(--accent-blue-light)] bg-transparent hover:bg-[var(--accent-blue-bg)] transition-all min-h-[44px]"
+                    >
+                      Manage All Sessions
+                    </button>
                   </details>
                 )}
               </div>
             ) : (
-              <Button
-                onClick={handleStart}
-                className="mt-5"
-              >
-                Start Attendance
-              </Button>
+              <div className="mt-5 flex flex-col gap-3">
+                <Button onClick={handleStart}>
+                  Start Attendance
+                </Button>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate(`/band/${bandId}/admin/sessions`)}
+                    className="w-full py-3 px-4 rounded-xl text-sm font-semibold border border-[var(--accent-blue-border)] text-[var(--accent-blue-light)] bg-transparent hover:bg-[var(--accent-blue-bg)] transition-all min-h-[44px]"
+                  >
+                    Manage Past Sessions
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
 
         {/* Reports Tab */}
         {activeTab === 'reports' && (
-          <Card>
-            <h3 className="mb-3 text-base font-bold text-[var(--text-primary)]">Attendance Reports</h3>
-            <ReportFilters
-              year={reportYear}
-              term={reportTerm}
-              onYearChange={setReportYear}
-              onTermChange={setReportTerm}
-              onGenerate={() => loadReport(reportYear, reportTerm)}
-            />
+          <div>
+            <Card className="no-print">
+              <h3 className="mb-3 text-base font-bold text-[var(--text-primary)]">Attendance Reports</h3>
+              <ReportFilters
+                year={reportYear}
+                term={reportTerm}
+                onYearChange={setReportYear}
+                onTermChange={setReportTerm}
+                onGenerate={() => loadReport(reportYear, reportTerm)}
+              />
+            </Card>
 
             <Spinner show={reportLoading} text="Loading report..." />
 
             {reportError && (
-              <div className="text-[var(--accent-red)] p-3 text-sm">
+              <div className="text-[var(--accent-red)] p-3 text-sm no-print">
                 Error loading report: {reportError}
               </div>
             )}
 
             {reportData && reportData.empty && (
-              <div className="text-center p-5 text-[var(--text-muted)]">
+              <div className="text-center p-5 text-[var(--text-muted)] no-print">
                 No sessions found for this period.
               </div>
             )}
 
             {reportData && !reportData.empty && (
-              <>
-                <DetailedRegister
-                  sortedSessions={reportData.sortedSessions}
-                  registerByInst={reportData.registerByInst}
-                  attMap={reportData.attMap}
-                  totalSessions={reportData.totalSessions}
-                />
-                <ExportButtons
-                  reportData={reportData}
-                  onExport={(msg) => toast(msg, 'success')}
-                  detailedOnly
-                />
-              </>
+              <div className="print-report">
+                {/* Print header — only visible when printing */}
+                <div className="hidden print:block mb-6">
+                  <h2 className="text-xl font-bold">{band?.name} — Attendance Report</h2>
+                  <p className="text-sm text-gray-600">
+                    {reportData.term ? `Term ${reportData.term}, ` : ''}{reportData.year}
+                  </p>
+                </div>
+
+                {/* Summary card */}
+                <Card className="report-section mb-4">
+                  <h4 className="font-bold text-[var(--text-primary)] mb-3">Summary</h4>
+                  <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                    <div>
+                      <div className="text-2xl font-bold text-[var(--accent-blue-light)]">{reportData.totalSessions}</div>
+                      <div className="text-xs text-[var(--text-muted)]">Sessions</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-[var(--accent-blue-light)]">
+                        {reportData.studentRows.length > 0
+                          ? Math.round(reportData.studentRows.reduce((s, r) => s + r.pct, 0) / reportData.studentRows.length)
+                          : 0}%
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)]">Avg Attendance</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-[var(--accent-blue-light)]">{reportData.studentRows.length}</div>
+                      <div className="text-xs text-[var(--text-muted)]">Students</div>
+                    </div>
+                  </div>
+                  {reportData.studentRows.slice(0, 3).some(r => r.pct < 80) && (
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-muted)] mb-1">Needs attention (lowest attendance)</div>
+                      {reportData.studentRows.slice(0, 3).map(r => (
+                        <div key={r.id} className="text-sm flex justify-between py-0.5">
+                          <span>{r.name} <span className="text-xs text-[var(--text-muted)]">({r.instrument})</span></span>
+                          <span className="font-semibold text-[var(--accent-red)]">{r.pct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="report-section mb-4">
+                  <DetailedRegister
+                    sortedSessions={reportData.sortedSessions}
+                    registerByInst={reportData.registerByInst}
+                    attMap={reportData.attMap}
+                    totalSessions={reportData.totalSessions}
+                  />
+                </Card>
+
+                <Card className="report-section mb-4">
+                  <InstrumentReport instRows={reportData.instRows} totalSessions={reportData.totalSessions} />
+                </Card>
+
+                <Card className="report-section mb-4">
+                  <StudentReport studentRows={reportData.studentRows} />
+                </Card>
+
+                <div className="flex gap-2 flex-wrap no-print">
+                  <Button variant="secondary" className="flex-1 min-w-[140px]" onClick={() => window.print()}>
+                    Print Report
+                  </Button>
+                  <ExportButtons
+                    reportData={reportData}
+                    onExport={(msg) => toast(msg, 'success')}
+                  />
+                </div>
+              </div>
             )}
-          </Card>
+          </div>
         )}
 
         {/* Events Tab */}

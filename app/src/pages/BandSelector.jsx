@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBands } from '../hooks/useBands';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import Header from '../components/layout/Header';
 import Spinner from '../components/layout/Spinner';
 import EmptyState from '../components/ui/EmptyState';
@@ -7,6 +10,14 @@ import EmptyState from '../components/ui/EmptyState';
 export default function BandSelector() {
   const { bands, loading, error } = useBands();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user?.email) return;
+    supabase.from('allowed_users').select('role').eq('email', user.email).maybeSingle()
+      .then(({ data }) => setIsAdmin(data?.role === 'admin'));
+  }, [user?.email]);
 
   return (
     <div>
@@ -60,6 +71,17 @@ export default function BandSelector() {
             View Dashboard
           </button>
         </div>
+
+        {isAdmin && (
+          <div className="mt-2 text-center">
+            <button
+              className="text-sm text-[var(--accent-blue-light)] font-semibold underline cursor-pointer bg-transparent border-none min-h-[44px] py-3"
+              onClick={() => navigate('/admin')}
+            >
+              Admin Panel
+            </button>
+          </div>
+        )}
 
         <div className="mt-4 text-center">
           <a href="privacy.html" target="_blank" className="text-sm text-[var(--text-muted)] underline min-h-[44px] py-3 inline-flex items-center">Privacy Policy</a>
