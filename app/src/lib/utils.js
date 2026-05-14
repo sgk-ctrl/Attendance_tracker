@@ -53,15 +53,15 @@ export function pctClass(p) {
 }
 
 export function pctColor(p) {
-  if (p >= 80) return 'var(--green-500)';
-  if (p >= 50) return 'var(--orange-500)';
-  return 'var(--red-500)';
+  if (p >= 80) return 'var(--accent-green)';
+  if (p >= 50) return 'var(--accent-orange)';
+  return 'var(--accent-red)';
 }
 
 export function pctTextColor(p) {
-  if (p >= 80) return 'text-[var(--green-600)]';
-  if (p >= 50) return 'text-[var(--orange-500)]';
-  return 'text-[var(--red-600)]';
+  if (p >= 80) return 'text-[var(--accent-green-light)]';
+  if (p >= 50) return 'text-[var(--accent-orange)]';
+  return 'text-[var(--accent-red)]';
 }
 
 // localStorage caching — keyed by bandId so multiple bands don't overwrite each other
