@@ -1,23 +1,38 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="theme-color" content="#1a365d" />
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>" />
-    <title>HNPS Band Attendance</title>
-    <script type="module" crossorigin src="/Attendance_tracker/assets/index-7VSVKKQJ.js"></script>
-    <link rel="stylesheet" crossorigin href="/Attendance_tracker/assets/index-nLNmtc9L.css">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
-    </script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>HNPS Band Attendance — moved</title>
+  <!-- This GitHub Pages copy is retired. The app now lives on Vercel.
+       This page unregisters any cached service worker (so old offline
+       copies stop serving) and forwards, preserving #/ deep links. -->
+  <script>
+    (async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) { /* best effort */ }
+      location.replace('https://hnps-band-attendance.vercel.app/' + location.hash);
+    })();
+  </script>
+  <meta http-equiv="refresh" content="2;url=https://hnps-band-attendance.vercel.app/">
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; background:#0b0f17; color:#e7ecf3;
+           display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; }
+    a { color:#7aa2ff; }
+  </style>
+</head>
+<body>
+  <p>The attendance app has moved.<br>
+     Taking you to <a href="https://hnps-band-attendance.vercel.app/">hnps-band-attendance.vercel.app</a>…<br>
+     <small>Please update your bookmark.</small></p>
+</body>
 </html>
