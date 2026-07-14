@@ -1,0 +1,43 @@
+name: Keep Supabase Alive
+
+# Pings the Supabase backend so the free-tier project never auto-pauses
+# (pause threshold is ~7 days idle; school holidays kill it otherwise).
+#
+# Runs every 3 days — a weekly ping is too close to the 7-day edge because
+# GitHub cron can lag by minutes-to-hours. Doubles as a smoke test: the job
+# fails (and GitHub emails you) if the backend stops returning 200.
+#
+# NOTE: this file must live on the DEFAULT branch (main) — scheduled
+# workflows on other branches never run. A copy on react-rebuild was
+# previously inert for exactly that reason.
+#
+# NOTE: GitHub disables schedules after ~60 days with no repo activity.
+# Any push or a manual "Run workflow" from the Actions tab re-arms it.
+#
+# The key below is the Supabase *publishable* (anon) key — safe to commit;
+# it is already public inside the deployed app bundle. RLS protects data.
+
+on:
+  schedule:
+    - cron: '0 19 */3 * *' # every 3 days, 19:00 UTC = 5am AEST
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query bands table (keep-alive + smoke test)
+        run: |
+          set -euo pipefail
+          STATUS=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
+            "https://dirdanwihxwfuqldruoy.supabase.co/rest/v1/bands?select=id&limit=1" \
+            -H "apikey: sb_publishable_Q-_p3M1PmqBjhacTiuVdEg_lYoXDpQg" \
+            -H "Authorization: Bearer sb_publishable_Q-_p3M1PmqBjhacTiuVdEg_lYoXDpQg")
+          echo "Supabase ping status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Supabase returned $STATUS — project may be paused or unhealthy."
+            cat /tmp/resp.txt
+            exit 1
+          fi
+          echo "Backend awake."
