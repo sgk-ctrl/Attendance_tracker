@@ -4,12 +4,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { user, loading } = useAuth();
+  const { user, loading, authorized } = useAuth();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
-  const [notAuthorized, setNotAuthorized] = useState(false);
 
   // Cooldown timer — prevents rate-limit errors by disabling the button
   // for 60 seconds after each magic link send
@@ -27,37 +26,27 @@ export default function Login() {
   }, []);
   useEffect(() => () => clearInterval(cooldownRef.current), []);
 
-  // If already logged in, check authorization then redirect
-  if (loading) {
+  // If already logged in, wait for the allowed_users verdict (from
+  // AuthContext) before redirecting — redirecting while the check is still
+  // in flight would let any authenticated email into the app shell.
+  const checkingAccess = user && authorized === null;
+  if (loading || checkingAccess) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
         <div className="text-center">
           <div className="spinner-circle mx-auto mb-3" />
-          <div className="text-sm text-[var(--text-secondary)]">Signing you in...</div>
+          <div className="text-sm text-[var(--text-secondary)]">
+            {checkingAccess ? 'Checking access...' : 'Signing you in...'}
+          </div>
         </div>
       </div>
     );
   }
 
-  if (user && !notAuthorized) {
-    // Check if user is in allowed_users
-    const checkAuth = async () => {
-      const { data, error: fetchError } = await supabase
-        .from('allowed_users')
-        .select('id')
-        .eq('email', user.email)
-        .maybeSingle();
+  const notAuthorized = user && authorized === false;
 
-      if (fetchError || !data) {
-        setNotAuthorized(true);
-        return;
-      }
-    };
-    checkAuth();
-
-    if (!notAuthorized) {
-      return <Navigate to="/" replace />;
-    }
+  if (user && authorized === true) {
+    return <Navigate to="/" replace />;
   }
 
   const handleSignIn = async (e) => {
@@ -100,7 +89,6 @@ export default function Login() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setNotAuthorized(false);
     setSent(false);
     setEmail('');
   };

@@ -105,22 +105,25 @@ export default function AttendanceFlow() {
     return students.filter(s => s.instrument_id === inst.id).length > 0;
   });
 
+  // Completion is judged against visibleInstruments only: an instrument with
+  // no active students renders no input, so requiring a tally for it would
+  // permanently block the Next button.
   let enteredCount = 0;
   let tallyTotal = 0;
-  instruments.forEach(inst => {
+  visibleInstruments.forEach(inst => {
     if (flow.tallies[inst.id] !== undefined) {
       enteredCount++;
       tallyTotal += flow.tallies[inst.id];
     }
   });
 
-  const allFilled = enteredCount >= instruments.length;
+  const allFilled = enteredCount >= visibleInstruments.length;
 
   // Handle next from tally — never silently fails. Always toasts the blocker
   // and scrolls to the first unfilled instrument so volunteers know why nothing happened.
   const handleNext = useCallback(() => {
     if (!allFilled) {
-      const remaining = instruments.length - enteredCount;
+      const remaining = visibleInstruments.length - enteredCount;
       toast(
         `${remaining} instrument${remaining === 1 ? '' : 's'} still need a count. Scrolling you to the next one.`,
         'error'
@@ -134,7 +137,7 @@ export default function AttendanceFlow() {
     }
     flow.goToResolve();
     window.scrollTo(0, 0);
-  }, [allFilled, flow, visibleInstruments, instruments.length, enteredCount, toast]);
+  }, [allFilled, flow, visibleInstruments, enteredCount, toast]);
 
   // Handle submit
   const handleSubmit = async () => {
@@ -242,7 +245,7 @@ export default function AttendanceFlow() {
 
                 {!allFilled && enteredCount > 0 && (
                   <div className="rounded-lg px-4 py-2 mb-3 text-sm text-[var(--accent-orange)] bg-[var(--accent-orange-bg)] border border-[var(--accent-orange-border)]">
-                    {instruments.length - enteredCount} instrument(s) still need a count
+                    {visibleInstruments.length - enteredCount} instrument(s) still need a count
                   </div>
                 )}
 
@@ -268,8 +271,8 @@ export default function AttendanceFlow() {
                   })}
                 </div>
                 <TallyFooter
-                  enteredCount={Math.min(enteredCount, instruments.length)}
-                  totalInstruments={instruments.length}
+                  enteredCount={Math.min(enteredCount, visibleInstruments.length)}
+                  totalInstruments={visibleInstruments.length}
                   tallyTotal={tallyTotal}
                   totalStudents={flow.totalStudents}
                   onNext={handleNext}

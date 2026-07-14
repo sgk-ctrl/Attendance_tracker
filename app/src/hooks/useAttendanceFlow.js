@@ -48,14 +48,60 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     }
   }, [bandId]);
 
-  // Start or edit attendance
-  const startAttendance = useCallback(async (editMode = false) => {
+  // Find (or create) the session row. Creation happens at SUBMIT time, not
+  // when the flow opens — otherwise abandoned flows leave empty sessions that
+  // reports count as real, dragging every student's percentage down.
+  // The database has a unique index on (band_id, session_date, session_time),
+  // so a concurrent create surfaces as a 23505 and we adopt the winner's row.
+  const ensureSession = useCallback(async () => {
     const dateStr = dateToISO(sessionDate);
     const volunteerName = getAuthEmail();
 
+    const findExisting = async () => {
+      const { data } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('session_date', dateStr)
+        .eq('session_time', sessionTime || '')
+        .eq('band_id', bandId)
+        .maybeSingle();
+      return data || null;
+    };
+
+    let session = existingSession || (await findExisting());
+    if (!session) {
+      const { data, error } = await supabase
+        .from('sessions')
+        .insert({
+          session_date: dateStr,
+          session_type: sessionType,
+          session_time: sessionTime || '',
+          term,
+          year,
+          band_id: bandId,
+          recorded_by: volunteerName,
+        })
+        .select()
+        .single();
+      if (error) {
+        // Unique violation (or race) — another volunteer created it first
+        session = await findExisting();
+        if (!session) throw error;
+      } else {
+        session = data;
+      }
+    }
+    setSessionId(session.id);
+    return session;
+  }, [sessionDate, sessionTime, sessionType, term, year, bandId, existingSession]);
+
+  // Start or edit attendance. Read-only: looks up an existing session (for
+  // edit mode) but never creates one — see ensureSession above.
+  const startAttendance = useCallback(async (editMode = false) => {
+    const dateStr = dateToISO(sessionDate);
+
     let session = existingSession;
     if (!session) {
-      // First check: look for an existing session
       const { data: existing } = await supabase
         .from('sessions')
         .select('*')
@@ -63,58 +109,11 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         .eq('session_time', sessionTime || '')
         .eq('band_id', bandId)
         .maybeSingle();
-      if (existing) {
-        session = existing;
-      } else {
-        // Brief delay then re-check to guard against concurrent creation
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const { data: recheck } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('session_date', dateStr)
-          .eq('session_time', sessionTime || '')
-          .eq('band_id', bandId)
-          .maybeSingle();
-        if (recheck) {
-          session = recheck;
-        } else {
-          // Insert new session (select-then-insert avoids needing a unique constraint)
-          const { data, error } = await supabase
-            .from('sessions')
-            .insert({
-              session_date: dateStr,
-              session_type: sessionType,
-              session_time: sessionTime || '',
-              term,
-              year,
-              band_id: bandId,
-              recorded_by: volunteerName,
-            })
-            .select()
-            .single();
-          if (error) {
-            // If duplicate, try to find the existing one
-            const { data: existingSession } = await supabase
-              .from('sessions')
-              .select('*')
-              .eq('session_date', dateStr)
-              .eq('session_time', sessionTime || '')
-              .eq('band_id', bandId)
-              .maybeSingle();
-            if (existingSession) {
-              session = existingSession;
-            } else {
-              throw error;
-            }
-          } else {
-            session = data;
-          }
-        }
-      }
+      session = existing || null;
     }
-    setSessionId(session.id);
+    setSessionId(session ? session.id : null);
 
-    if (editMode && existingSession) {
+    if (editMode && existingSession && session) {
       const { data: attData, error: attErr } = await supabase
         .from('attendance')
         .select('student_id, present')
@@ -138,7 +137,7 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
 
     setStep(1);
     return session;
-  }, [sessionDate, sessionTime, sessionType, term, year, bandId, instruments, students, existingSession]);
+  }, [sessionDate, sessionTime, bandId, instruments, students, existingSession]);
 
   // Update a tally value
   const setTally = useCallback((instId, value) => {
@@ -242,20 +241,25 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     submittingRef.current = true;
     setSubmitting(true);
 
-    const records = students.map(s => ({
-      session_id: sessionId,
+    const dateStr = dateToISO(sessionDate);
+
+    // Records without a session id — resolved below, and re-resolved by the
+    // offline retry path, which stamps session_id fresh before inserting.
+    const baseRecords = students.map(s => ({
       student_id: s.id,
       present: !!attendance[s.id],
     }));
 
-    const dateStr = dateToISO(sessionDate);
-
     try {
+      // Create (or adopt) the session row now that there is real data to save
+      const session = await ensureSession();
+      const records = baseRecords.map(r => ({ ...r, session_id: session.id }));
+
       // Check if attendance records already exist for this session
       const { data: existingAtt } = await supabase
         .from('attendance')
         .select('student_id')
-        .eq('session_id', sessionId);
+        .eq('session_id', session.id);
 
       const existingIds = new Set((existingAtt || []).map(e => e.student_id));
       const toUpdate = records.filter(r => existingIds.has(r.student_id));
@@ -298,13 +302,13 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
       setStep(3);
       return { success: true };
     } catch (e) {
-      savePendingAttendance(bandId, dateStr, sessionType, term, year, records);
+      savePendingAttendance(bandId, dateStr, sessionType, term, year, baseRecords);
       throw e;
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [students, sessionId, attendance, sessionDate, sessionType, term, year, bandId]);
+  }, [students, attendance, sessionDate, sessionType, term, year, bandId, ensureSession]);
 
   // Summary data
   const getSummaryData = useCallback(() => {
