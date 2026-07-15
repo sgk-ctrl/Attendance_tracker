@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { saveAttendance } from '../lib/attendance';
 import { dateToISO, savePendingAttendance, removePendingAttendance } from '../lib/utils';
 
 function getAuthEmail() {
@@ -48,55 +49,10 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     }
   }, [bandId]);
 
-  // Find (or create) the session row. Creation happens at SUBMIT time, not
-  // when the flow opens — otherwise abandoned flows leave empty sessions that
-  // reports count as real, dragging every student's percentage down.
-  // The database has a unique index on (band_id, session_date, session_time),
-  // so a concurrent create surfaces as a 23505 and we adopt the winner's row.
-  const ensureSession = useCallback(async () => {
-    const dateStr = dateToISO(sessionDate);
-    const volunteerName = getAuthEmail();
-
-    const findExisting = async () => {
-      const { data } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('session_date', dateStr)
-        .eq('session_time', sessionTime || '')
-        .eq('band_id', bandId)
-        .maybeSingle();
-      return data || null;
-    };
-
-    let session = existingSession || (await findExisting());
-    if (!session) {
-      const { data, error } = await supabase
-        .from('sessions')
-        .insert({
-          session_date: dateStr,
-          session_type: sessionType,
-          session_time: sessionTime || '',
-          term,
-          year,
-          band_id: bandId,
-          recorded_by: volunteerName,
-        })
-        .select()
-        .single();
-      if (error) {
-        // Unique violation (or race) — another volunteer created it first
-        session = await findExisting();
-        if (!session) throw error;
-      } else {
-        session = data;
-      }
-    }
-    setSessionId(session.id);
-    return session;
-  }, [sessionDate, sessionTime, sessionType, term, year, bandId, existingSession]);
-
   // Start or edit attendance. Read-only: looks up an existing session (for
-  // edit mode) but never creates one — see ensureSession above.
+  // edit mode) but never creates one — the session is created at SUBMIT time
+  // (see lib/attendance.js), otherwise an abandoned flow leaves an empty
+  // session that reports count as real.
   const startAttendance = useCallback(async (editMode = false) => {
     const dateStr = dateToISO(sessionDate);
 
@@ -110,10 +66,17 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         .eq('band_id', bandId)
         .maybeSingle();
       session = existing || null;
+      // Cache it so submit reuses this row instead of re-querying, and so the
+      // edit branch below stays true on re-render.
+      if (session) setExistingSession(session);
     }
     setSessionId(session ? session.id : null);
 
-    if (editMode && existingSession && session) {
+    // Gate on the freshly-fetched `session`, NOT on the `existingSession`
+    // state: this screen never calls checkExisting(), so that state was always
+    // null here and edit mode silently fell through to the reset branch —
+    // loading blank, then overwriting every real record on submit.
+    if (editMode && session) {
       const { data: attData, error: attErr } = await supabase
         .from('attendance')
         .select('student_id, present')
@@ -242,73 +205,45 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     setSubmitting(true);
 
     const dateStr = dateToISO(sessionDate);
+    const params = {
+      bandId,
+      dateStr,
+      sessionTime: sessionTime || '',
+      sessionType,
+      term,
+      year,
+      recordedBy: getAuthEmail(),
+    };
 
-    // Records without a session id — resolved below, and re-resolved by the
-    // offline retry path, which stamps session_id fresh before inserting.
-    const baseRecords = students.map(s => ({
+    const records = students.map(s => ({
       student_id: s.id,
       present: !!attendance[s.id],
     }));
 
+    // WRITE-AHEAD: stash locally BEFORE touching the network, not in the catch.
+    // A stalled request (the normal failure in a hall with bad reception) used
+    // to hang forever without ever reaching a catch block, so the volunteer
+    // force-quit and 71 records vanished with no pending banner. Saving first
+    // means no failure mode — stall, crash, or closed tab — can lose the take.
+    savePendingAttendance({ ...params, payload: records });
+
     try {
-      // Create (or adopt) the session row now that there is real data to save
-      const session = await ensureSession();
-      const records = baseRecords.map(r => ({ ...r, session_id: session.id }));
+      const { session, warning } = await saveAttendance({ ...params, records });
+      setSessionId(session.id);
+      setExistingSession(session);
 
-      // Check if attendance records already exist for this session
-      const { data: existingAtt } = await supabase
-        .from('attendance')
-        .select('student_id')
-        .eq('session_id', session.id);
-
-      const existingIds = new Set((existingAtt || []).map(e => e.student_id));
-      const toUpdate = records.filter(r => existingIds.has(r.student_id));
-      const toInsert = records.filter(r => !existingIds.has(r.student_id));
-
-      // Update existing records
-      for (const rec of toUpdate) {
-        await supabase
-          .from('attendance')
-          .update({ present: rec.present })
-          .eq('session_id', rec.session_id)
-          .eq('student_id', rec.student_id);
-      }
-
-      // Insert new records
-      if (toInsert.length > 0) {
-        const { error } = await supabase
-          .from('attendance')
-          .insert(toInsert);
-        if (error) {
-          if (error.code === '23503' || (error.message && error.message.includes('foreign key'))) {
-            const { data: freshStudents } = await supabase.from('students').select('id').eq('active', true);
-            const validIds = new Set((freshStudents || []).map(s => s.id));
-            const validInserts = toInsert.filter(r => validIds.has(r.student_id));
-            if (validInserts.length > 0) {
-              const { error: retryErr } = await supabase.from('attendance').insert(validInserts);
-              if (retryErr) throw retryErr;
-            }
-            removePendingAttendance(bandId, dateStr, sessionType);
-            setHasDataEntered(false);
-            setStep(3);
-            return { success: true, warning: 'Some students were excluded due to roster changes.' };
-          }
-          throw error;
-        }
-      }
-
-      removePendingAttendance(bandId, dateStr, sessionType);
+      // Only now is it safe to drop the local copy.
+      removePendingAttendance(bandId, dateStr, sessionType, params.sessionTime);
       setHasDataEntered(false);
       setStep(3);
-      return { success: true };
-    } catch (e) {
-      savePendingAttendance(bandId, dateStr, sessionType, term, year, baseRecords);
-      throw e;
+      return warning ? { success: true, warning } : { success: true };
     } finally {
+      // On failure the pending record stays put for the retry path — that is
+      // the whole point of the write-ahead above, so there is nothing to undo.
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [students, attendance, sessionDate, sessionType, term, year, bandId, ensureSession]);
+  }, [students, attendance, sessionDate, sessionTime, sessionType, term, year, bandId]);
 
   // Summary data
   const getSummaryData = useCallback(() => {

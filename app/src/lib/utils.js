@@ -84,17 +84,28 @@ export function getCachedData(bandId) {
   return null;
 }
 
-// bandId is included in the key so pending records for different bands never collide
-export function savePendingAttendance(bandId, dateStr, sessionType, term, year, payload) {
+// bandId is included in the key so pending records for different bands never
+// collide, and sessionTime is included because a morning and an afternoon
+// rehearsal on the same date are different sessions — keying without it meant
+// the second one overwrote the first while it was still pending.
+function pendingKey(bandId, dateStr, sessionType, sessionTime) {
+  return `pending_attendance_${bandId}_${dateStr}_${sessionType}_${sessionTime || ''}`;
+}
+
+// sessionTime and recordedBy MUST be carried: the retry path recreates the
+// session from this payload, and every read path filters on session_time. A
+// pending record saved without it syncs into a session the app cannot see.
+export function savePendingAttendance({ bandId, dateStr, sessionType, sessionTime, term, year, recordedBy, payload }) {
   try {
-    const key = `pending_attendance_${bandId}_${dateStr}_${sessionType}`;
-    localStorage.setItem(key, JSON.stringify({
+    localStorage.setItem(pendingKey(bandId, dateStr, sessionType, sessionTime), JSON.stringify({
       payload,
       date: dateStr,
       sessionType,
+      sessionTime: sessionTime || '',
       bandId,
       term,
       year,
+      recordedBy: recordedBy || '',
       savedAt: new Date().toISOString(),
     }));
   } catch (e) {
@@ -113,9 +124,8 @@ export function getPendingAttendanceKeys() {
   return keys;
 }
 
-export function removePendingAttendance(bandId, dateStr, sessionType) {
-  const key = `pending_attendance_${bandId}_${dateStr}_${sessionType}`;
-  localStorage.removeItem(key);
+export function removePendingAttendance(bandId, dateStr, sessionType, sessionTime) {
+  localStorage.removeItem(pendingKey(bandId, dateStr, sessionType, sessionTime));
 }
 
 export function debounce(fn, delay) {

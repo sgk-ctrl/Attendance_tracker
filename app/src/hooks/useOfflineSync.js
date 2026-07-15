@@ -1,10 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { saveAttendance } from '../lib/attendance';
 import { getPendingAttendanceKeys } from '../lib/utils';
 
 export function useOfflineSync() {
   const [pendingKeys, setPendingKeys] = useState([]);
   const [syncing, setSyncing] = useState(false);
+  // Holds the latest retrySync so the online/visibility listeners (registered
+  // once, before retrySync is defined) never call a stale closure.
+  const retrySyncRef = useRef(null);
+  const syncingRef = useRef(false);
 
   const checkPending = useCallback(() => {
     const keys = getPendingAttendanceKeys();
@@ -15,6 +19,21 @@ export function useOfflineSync() {
   useEffect(() => {
     checkPending();
   }, [checkPending]);
+
+  // Retry automatically when the network comes back or the volunteer returns to
+  // the tab. The RUNBOOK and the pending banner both told volunteers this
+  // already happened; nothing actually listened, so a pending roll call sat
+  // there until someone found the manual retry button.
+  useEffect(() => {
+    const onOnline = () => { retrySyncRef.current?.(); };
+    const onVisible = () => { if (!document.hidden) retrySyncRef.current?.(); };
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   const getPendingInfo = useCallback(() => {
     if (pendingKeys.length === 0) return null;
@@ -27,12 +46,17 @@ export function useOfflineSync() {
   }, [pendingKeys]);
 
   const retrySync = useCallback(async () => {
+    // Auto-triggers (online, visibilitychange) can overlap a manual retry;
+    // without this guard two passes race on the same pending keys.
+    if (syncingRef.current) return false;
+
     const keys = getPendingAttendanceKeys();
     if (keys.length === 0) {
       setPendingKeys([]);
       return true;
     }
 
+    syncingRef.current = true;
     setSyncing(true);
     let allSynced = true;
 
@@ -45,50 +69,19 @@ export function useOfflineSync() {
             continue;
           }
 
-          let session;
-          const { data: existing, error: findErr } = await supabase
-            .from('sessions')
-            .select('*')
-            .eq('session_date', data.date)
-            .eq('session_type', data.sessionType)
-            .eq('band_id', data.bandId)
-            .maybeSingle();
-          if (findErr) throw findErr;
-
-          if (existing) {
-            session = existing;
-          } else {
-            const { data: created, error: createErr } = await supabase
-              .from('sessions')
-              .insert({
-                session_date: data.date,
-                session_type: data.sessionType,
-                band_id: data.bandId,
-                term: data.term,
-                year: data.year,
-              })
-              .select()
-              .single();
-            if (createErr) throw createErr;
-            session = created;
-          }
-
-          const records = data.payload.map(r => ({ ...r, session_id: session.id }));
-          // Check existing, update or insert
-          const { data: existingAtt } = await supabase
-            .from('attendance')
-            .select('student_id')
-            .eq('session_id', session.id);
-          const existingIds = new Set((existingAtt || []).map(e => e.student_id));
-          const toInsert = records.filter(r => !existingIds.has(r.student_id));
-          for (const rec of records.filter(r => existingIds.has(r.student_id))) {
-            await supabase.from('attendance').update({ present: rec.present })
-              .eq('session_id', rec.session_id).eq('student_id', rec.student_id);
-          }
-          if (toInsert.length > 0) {
-            const { error } = await supabase.from('attendance').insert(toInsert);
-            if (error) throw error;
-          }
+          // Same write path as a live submit (lib/attendance.js). This used to
+          // be a divergent copy that omitted session_time, creating sessions
+          // the app could never find and silently duplicating rehearsals.
+          await saveAttendance({
+            bandId: data.bandId,
+            dateStr: data.date,
+            sessionTime: data.sessionTime || '',
+            sessionType: data.sessionType,
+            term: data.term,
+            year: data.year,
+            recordedBy: data.recordedBy || '',
+            records: data.payload,
+          });
 
           localStorage.removeItem(key);
         } catch (e) {
@@ -97,12 +90,15 @@ export function useOfflineSync() {
         }
       }
     } finally {
+      syncingRef.current = false;
       setSyncing(false);
       checkPending();
     }
 
     return allSynced;
   }, [checkPending]);
+
+  retrySyncRef.current = retrySync;
 
   return { pendingKeys, syncing, checkPending, getPendingInfo, retrySync };
 }
