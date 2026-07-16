@@ -14,9 +14,11 @@ edits that trusted an earlier version of this document.
 5. **One write path.** `lib/attendance.js` only. The live submit and the offline retry must never have separate copies — they drifted before and silently duplicated every offline rehearsal.
 6. **Sessions are created at submit, never on screen open.** An abandoned flow must not leave a session; reports count sessions and an empty one drags every child's percentage down.
 7. **Save locally before the network, not in a `catch`.** Bad reception stalls rather than fails; a stall never reaches a catch block.
-8. **Check the `error` on every Supabase call.** supabase-js *resolves* on a PostgREST error — an unchecked call reports success while writing nothing.
-9. **`attendance_summary` keeps `security_invoker = true`.** Without it the view bypasses RLS entirely.
-10. **The schema lives in `supabase/schema.sql`.** Free tier has no point-in-time recovery; dashboard-only state is unreviewable and unrecoverable. Update it in the same commit as any DB change.
+8. **Check the `error` on every Supabase call.** supabase-js *resolves* on a PostgREST error — an unchecked call reports success while writing nothing. This has bitten this codebase four separate times (attendance update loop, event_attendance update loop, session lookup, session delete). `const { data } = await supabase...` with no `error` is a bug, not a shortcut.
+9. **Never write a blank take over an existing one.** If an edit prefill did not load, the on-screen marks are empty, not "everyone absent" — submit must refuse. A failed read is not an empty result.
+10. **Only claim what actually happened.** "Saved locally for retry" must be conditional on the write-ahead stash returning true; a warning must count what was really dropped. The volunteer's trust is the only error-detection this app has.
+11. **`attendance_summary` keeps `security_invoker = true`.** Without it the view bypasses RLS entirely.
+12. **The schema lives in `supabase/schema.sql`.** Free tier has no point-in-time recovery; dashboard-only state is unreviewable and unrecoverable. Update it in the same commit as any DB change.
 
 ## Overview
 

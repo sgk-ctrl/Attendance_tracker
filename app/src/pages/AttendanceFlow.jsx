@@ -151,7 +151,14 @@ export default function AttendanceFlow() {
       toast('Attendance saved successfully!', 'success');
       window.scrollTo(0, 0);
     } catch (e) {
-      toast('Failed to save. Data saved locally for retry.', 'error');
+      // Never promise a local copy that was not actually written: if storage is
+      // full or disabled the take exists only on this screen, and the volunteer
+      // needs to know that before they walk away or close the tab.
+      if (e?.stashed === false) {
+        toast("Couldn't save, and this device has no storage space to keep it. Do NOT close this page — try again now.", 'error');
+      } else {
+        toast('Failed to save. Kept on this device — it will sync when you are back online.', 'error');
+      }
     } finally {
       setShowSpinner(false);
     }

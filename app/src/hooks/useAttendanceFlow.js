@@ -26,6 +26,10 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
   const [submitting, setSubmitting] = useState(false);
   const [hasDataEntered, setHasDataEntered] = useState(false);
   const submittingRef = useRef(false);
+  // True once an edit-mode prefill has actually loaded the existing marks.
+  // Submit refuses to run while an edit is requested but unloaded — otherwise a
+  // failed prefill lets the volunteer write a blank take over 71 real records.
+  const editPrefillLoadedRef = useRef(false);
 
   const totalStudents = students.length;
 
@@ -55,16 +59,23 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
   // session that reports count as real.
   const startAttendance = useCallback(async (editMode = false) => {
     const dateStr = dateToISO(sessionDate);
+    editPrefillLoadedRef.current = !editMode; // nothing to load unless editing
 
     let session = existingSession;
     if (!session) {
-      const { data: existing } = await supabase
+      // The error MUST be checked and thrown. supabase-js resolves rather than
+      // throws on a PostgREST error, so swallowing it here made `session` null
+      // on any transient blip — which sent edit mode down the reset branch and
+      // silently reproduced the blank-then-overwrite bug this gate exists to
+      // prevent. A failed lookup is not "no session".
+      const { data: existing, error: findErr } = await supabase
         .from('sessions')
         .select('*')
         .eq('session_date', dateStr)
         .eq('session_time', sessionTime || '')
         .eq('band_id', bandId)
         .maybeSingle();
+      if (findErr) throw findErr;
       session = existing || null;
       // Cache it so submit reuses this row instead of re-querying, and so the
       // edit branch below stays true on re-render.
@@ -93,6 +104,7 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         t[inst.id] = studs.filter(s => att[s.id] === true).length;
       });
       setTallies(t);
+      editPrefillLoadedRef.current = true;
     } else {
       setTallies({});
       setAttendance({});
@@ -201,6 +213,13 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
   // Submit attendance
   const submitAttendance = useCallback(async () => {
     if (submittingRef.current) return;
+    // Last line of defence for the edit path: if the volunteer asked to edit an
+    // existing session but the prefill never loaded (lookup failed, prefill
+    // threw), the on-screen marks are blank — not "everyone absent". Writing
+    // them would destroy the real take for all 71 children. Refuse instead.
+    if (!editPrefillLoadedRef.current) {
+      throw new Error("This session's existing attendance could not be loaded, so it can't be saved over. Go back and reopen it.");
+    }
     submittingRef.current = true;
     setSubmitting(true);
 
@@ -225,7 +244,9 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     // to hang forever without ever reaching a catch block, so the volunteer
     // force-quit and 71 records vanished with no pending banner. Saving first
     // means no failure mode — stall, crash, or closed tab — can lose the take.
-    savePendingAttendance({ ...params, payload: records });
+    // stashed=false means storage is full/disabled: the safety net is NOT there,
+    // and the UI must not claim otherwise if the submit then fails.
+    const stashed = savePendingAttendance({ ...params, payload: records });
 
     try {
       const { session, warning } = await saveAttendance({ ...params, records });
@@ -237,6 +258,11 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
       setHasDataEntered(false);
       setStep(3);
       return warning ? { success: true, warning } : { success: true };
+    } catch (e) {
+      // Tell the truth about whether the take survived: `stashed` decides
+      // whether "we kept it for retry" is a promise or a lie.
+      e.stashed = stashed;
+      throw e;
     } finally {
       // On failure the pending record stays put for the retry path — that is
       // the whole point of the write-ahead above, so there is nothing to undo.

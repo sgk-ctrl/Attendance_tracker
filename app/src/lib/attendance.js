@@ -1,4 +1,6 @@
-import { supabase } from './supabase';
+// Explicit .js extension so this module is loadable by Node's test runner as
+// well as Vite — it is the one module with real tests (attendance.test.js).
+import { supabase } from './supabase.js';
 
 // THE single write path for attendance. Both the live submit (useAttendanceFlow)
 // and the offline retry (useOfflineSync) call saveAttendance — previously each
@@ -81,19 +83,29 @@ export async function saveAttendance({ records, ...sessionParams }) {
     .upsert(rows, { onConflict: 'session_id,student_id' });
 
   if (error) {
-    // A student deleted from the roster mid-session fails the FK. Drop only the
-    // stale rows and retry, rather than losing the other 70 children's marks.
+    // A student HARD-deleted from the roster mid-session fails the FK. Drop only
+    // the stale rows and retry, rather than losing the other 70 children's marks.
     if (error.code === '23503' || error.message?.includes('foreign key')) {
-      const { data: fresh } = await supabase.from('students').select('id').eq('active', true);
+      // No .eq('active', true) here: an FK only fails for a row that no longer
+      // EXISTS. Filtering on active would also discard students who were merely
+      // deactivated — silently dropping real marks the database would accept.
+      const { data: fresh, error: freshErr } = await supabase.from('students').select('id');
+      // If we cannot establish which students are real, we cannot know what is
+      // safe to write. Throw: the caller keeps its local copy and retries later.
+      // Returning success here wrote ZERO rows and then deleted the backup.
+      if (freshErr) throw freshErr;
+
       const valid = new Set((fresh || []).map(s => s.id));
       const kept = rows.filter(r => valid.has(r.student_id));
-      if (kept.length > 0) {
-        const { error: retryErr } = await supabase
-          .from('attendance')
-          .upsert(kept, { onConflict: 'session_id,student_id' });
-        if (retryErr) throw retryErr;
-      }
-      return { session, warning: 'Some students were excluded due to roster changes.' };
+      if (kept.length === 0) throw error; // nothing writable — do not claim success
+
+      const { error: retryErr } = await supabase
+        .from('attendance')
+        .upsert(kept, { onConflict: 'session_id,student_id' });
+      if (retryErr) throw retryErr;
+
+      const dropped = rows.length - kept.length;
+      return { session, warning: `${dropped} student${dropped === 1 ? ' was' : 's were'} excluded — they are no longer on the roster.` };
     }
     throw error;
   }

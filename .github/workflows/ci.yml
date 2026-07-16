@@ -1,0 +1,29 @@
+name: CI
+
+# Nothing gated changes to this app before eight volunteers used them to record
+# 71 children's attendance. This runs on every push and PR so a broken build or
+# a broken save path is caught here rather than in a school hall.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm ci || npm install
+      - name: Tests (attendance write path)
+        run: npm test
+      - name: Build
+        run: npm run build

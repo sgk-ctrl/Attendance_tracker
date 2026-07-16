@@ -61,8 +61,13 @@ export default function BandHome() {
     if (!window.confirm(`Delete attendance for this session? This cannot be undone.`)) return;
     setResetting(true);
     try {
-      await supabase.from('attendance').delete().eq('session_id', existingSession.id);
-      await supabase.from('sessions').delete().eq('id', existingSession.id);
+      // Errors MUST be checked: supabase-js resolves rather than throws on a
+      // PostgREST error, so an unchecked delete reported "Session deleted"
+      // while the rows were still there. Deleting the session first lets the
+      // FK's ON DELETE CASCADE remove the attendance rows in the same
+      // statement — the old two-step could half-fail and orphan them.
+      const { error } = await supabase.from('sessions').delete().eq('id', existingSession.id);
+      if (error) throw error;
       setExistingSession(null);
       toast('Session deleted', 'success');
     } catch (e) {

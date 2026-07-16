@@ -90,21 +90,18 @@ export function useEventAttendance(eventId) {
         student_id: s.id,
         present: !!attendance[s.id],
       }));
-      // Check existing, update or insert
-      const { data: existing } = await supabase
+
+      // One checked upsert, matching the rehearsal path (lib/attendance.js).
+      // This replaces a read-then-update-loop whose UPDATE results were thrown
+      // away — and supabase-js RESOLVES rather than throws on a PostgREST
+      // error, so a rejected or aborted write reported success while the
+      // database kept the old marks. Relies on the existing unique constraint
+      // event_attendance(event_id, student_id).
+      const { error } = await supabase
         .from('event_attendance')
-        .select('student_id')
-        .eq('event_id', eventId);
-      const existingIds = new Set((existing || []).map(e => e.student_id));
-      for (const rec of records.filter(r => existingIds.has(r.student_id))) {
-        await supabase.from('event_attendance').update({ present: rec.present })
-          .eq('event_id', rec.event_id).eq('student_id', rec.student_id);
-      }
-      const toInsert = records.filter(r => !existingIds.has(r.student_id));
-      if (toInsert.length > 0) {
-        const { error } = await supabase.from('event_attendance').insert(toInsert);
-        if (error) throw error;
-      }
+        .upsert(records, { onConflict: 'event_id,student_id' });
+      if (error) throw error;
+
       return { success: true };
     } finally {
       setSubmitting(false);

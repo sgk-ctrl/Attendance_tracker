@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { saveAttendance } from '../lib/attendance';
-import { getPendingAttendanceKeys } from '../lib/utils';
+import { getPendingAttendanceKeys, defaultTimeForType } from '../lib/utils';
 
 export function useOfflineSync() {
   const [pendingKeys, setPendingKeys] = useState([]);
@@ -69,13 +69,26 @@ export function useOfflineSync() {
             continue;
           }
 
+          // LEGACY REPAIR: records stashed by a build before session_time was
+          // part of the payload have no sessionTime. Syncing those with '' is
+          // precisely the bug this rewrite closed — every read path filters on
+          // session_time, so the session would be created invisible and the
+          // rehearsal recorded twice. A pending record exists *because* the old
+          // build failed to sync it, so this is the likely case, not a rare one.
+          // Fall back to the app's default time for the session type: a session
+          // at a slightly wrong clock time is visible and fixable; one at '' is
+          // neither.
+          const sessionTime = data.sessionTime || defaultTimeForType(data.sessionType);
+          if (!data.sessionTime) {
+            console.warn('Repairing legacy pending record with no session time:', key, '->', sessionTime);
+          }
+
           // Same write path as a live submit (lib/attendance.js). This used to
-          // be a divergent copy that omitted session_time, creating sessions
-          // the app could never find and silently duplicating rehearsals.
+          // be a divergent copy that omitted session_time.
           await saveAttendance({
             bandId: data.bandId,
             dateStr: data.date,
-            sessionTime: data.sessionTime || '',
+            sessionTime,
             sessionType: data.sessionType,
             term: data.term,
             year: data.year,
