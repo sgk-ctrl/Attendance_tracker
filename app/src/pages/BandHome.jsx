@@ -8,6 +8,12 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { calcTerm, defaultTimeForDay, buildSessionTime, sessionTypeFromTime, dateToISO } from '../lib/utils';
 import { EVENT_TYPES } from '../lib/constants';
+
+// One literal for both the initial state and the post-create reset. They were
+// duplicated and drifted: the reset set event_type to '' while the initial
+// state used 'other', so the first event of a session saved and every one after
+// it was rejected by the DB CHECK constraint with a raw Postgres error.
+const EMPTY_EVENT = { name: '', event_type: 'other', event_date: '', event_time: '', venue: '', notes: '' };
 import { supabase } from '../lib/supabase';
 import Header from '../components/layout/Header';
 import TabBar from '../components/layout/TabBar';
@@ -194,7 +200,7 @@ export default function BandHome() {
 
   // Add event
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({ name: '', event_type: 'other', event_date: '', event_time: '', venue: '', notes: '' });
+  const [newEvent, setNewEvent] = useState(EMPTY_EVENT);
 
   const handleCreateEvent = async () => {
     if (!newEvent.name || !newEvent.event_date) {
@@ -205,7 +211,7 @@ export default function BandHome() {
       await createEvent(newEvent);
       toast('Event created!', 'success');
       setShowAddEvent(false);
-      setNewEvent({ name: '', event_type: '', event_date: '', event_time: '', venue: '', notes: '' });
+      setNewEvent(EMPTY_EVENT);
     } catch (e) {
       toast('Failed to create event: ' + e.message, 'error');
     }

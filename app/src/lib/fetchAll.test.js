@@ -28,11 +28,15 @@ describe('fetchAllRows', () => {
     assert.deepEqual(rows.map(r => r.id), t.all.map(r => r.id));
   });
 
-  test('stops after one request when the data fits', async () => {
+  test('a small table costs one confirming request — the deliberate price of not assuming the cap', async () => {
     const t = makeCappedTable(71);
     const rows = await fetchAllRows(t.query);
     assert.equal(rows.length, 71);
-    assert.equal(t.ranges.length, 1);
+    // A first page shorter than requested is ambiguous: end-of-data, or the
+    // server capping us? We ask once more rather than guess. Assuming here is
+    // what silently truncated reports before. Two requests on a 71-row roster
+    // is imperceptible; a quietly under-counted term is not.
+    assert.equal(t.ranges.length, 2);
   });
 
   test('handles an exact multiple of the page size without dropping or looping', async () => {
@@ -51,5 +55,23 @@ describe('fetchAllRows', () => {
     await assert.rejects(() => fetchAllRows(() => ({
       range: () => Promise.resolve({ data: null, error: { message: 'boom' } }),
     })));
+  });
+
+  // These caps are the whole point: the first version of this helper assumed the
+  // server's ceiling was 1000, so a project configured lower silently returned a
+  // truncated term — the exact bug the helper exists to prevent. The cap is
+  // discovered at runtime now; never reintroduce a hardcoded page size.
+  for (const cap of [500, 200, 137]) {
+    test(`returns every row when the server caps responses at ${cap} (below the request size)`, async () => {
+      const t = makeCappedTable(1420, cap);
+      const rows = await fetchAllRows(t.query);
+      assert.equal(rows.length, 1420);
+      assert.deepEqual(rows.map(r => r.id), t.all.map(r => r.id));
+    });
+  }
+
+  test('a table smaller than the server cap still returns fully', async () => {
+    const rows = await fetchAllRows(makeCappedTable(71, 500).query);
+    assert.equal(rows.length, 71);
   });
 });
