@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '../lib/fetchAll';
 
 export function useReports(bandId) {
   const [loading, setLoading] = useState(false);
@@ -23,17 +24,18 @@ export function useReports(bandId) {
 
       const sessionIds = sessions.map(s => s.id);
 
-      const [attRes, studRes, instRes] = await Promise.all([
-        supabase.from('attendance').select('session_id, student_id, present').in('session_id', sessionIds),
+      // Paged: attendance crosses PostgREST's 1000-row cap mid-term (71
+      // students x 15 sessions), and the cap truncates silently — every child's
+      // percentage would quietly drop with no error to catch.
+      const [attData, studRes, instRes] = await Promise.all([
+        fetchAllRows(() =>
+          supabase.from('attendance').select('session_id, student_id, present').in('session_id', sessionIds).order('id')),
         supabase.from('students').select('*').eq('active', true).eq('band_id', bandId).order('last_name'),
         supabase.from('instruments').select('*').eq('band_id', bandId).order('display_order'),
       ]);
 
-      if (attRes.error) throw attRes.error;
-
       const students = studRes.data || [];
       const instruments = instRes.data || [];
-      const attData = attRes.data || [];
       const totalSessions = sessions.length;
 
       const instMap = {};

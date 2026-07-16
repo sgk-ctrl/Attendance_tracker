@@ -145,18 +145,25 @@ export default function AttendanceFlow() {
     setSpinnerText('Saving attendance...');
     try {
       const result = await flow.submitAttendance();
-      if (result.warning) {
-        toast(result.warning, 'error');
-      }
-      toast('Attendance saved successfully!', 'success');
+      if (result?.alreadySubmitting) return; // a save is already in flight
+      // One toast, not an error followed instantly by a success — they read as
+      // a contradiction.
+      toast(
+        result?.warning ? `Attendance saved. ${result.warning}` : 'Attendance saved successfully!',
+        'success'
+      );
       window.scrollTo(0, 0);
     } catch (e) {
-      // Never promise a local copy that was not actually written: if storage is
-      // full or disabled the take exists only on this screen, and the volunteer
-      // needs to know that before they walk away or close the tab.
-      if (e?.stashed === false) {
+      // These three outcomes demand OPPOSITE actions from the volunteer, so
+      // they must never share a message.
+      if (e?.refused) {
+        // Refused on purpose. Nothing was written, nothing was lost.
+        toast(e.message, 'error');
+      } else if (e?.stashed === false) {
+        // The safety net does not exist — the take is only on this screen.
         toast("Couldn't save, and this device has no storage space to keep it. Do NOT close this page — try again now.", 'error');
       } else {
+        // Genuinely stashed: safe to walk away.
         toast('Failed to save. Kept on this device — it will sync when you are back online.', 'error');
       }
     } finally {

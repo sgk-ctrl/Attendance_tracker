@@ -1,6 +1,6 @@
 const variants = {
   primary: 'bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-blue-dark)] text-white shadow-[var(--shadow-glow)] active:scale-[0.98] active:shadow-[var(--shadow-sm)]',
-  secondary: 'bg-transparent text-[#93c5fd] border border-[var(--accent-blue-border)]',
+  secondary: 'bg-transparent text-[var(--btn-secondary-text)] border border-[var(--accent-blue-border)]',
   success: 'bg-gradient-to-br from-[var(--accent-green)] to-[var(--accent-green-dark)] text-white shadow-[var(--shadow-md)] active:scale-[0.98]',
 };
 

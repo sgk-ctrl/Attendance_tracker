@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useEvents(bandId) {
@@ -46,6 +46,12 @@ export function useEventAttendance(eventId) {
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // A failed load leaves `attendance` empty, which renders EXACTLY like a
+  // legitimate "nobody marked yet" — and submit would then faithfully write 71
+  // absences over the real marks. An unread list is not an empty list. Mirrors
+  // editPrefillLoadedRef on the rehearsal path (useAttendanceFlow.js).
+  const [loadError, setLoadError] = useState(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     if (!eventId) return;
@@ -53,6 +59,7 @@ export function useEventAttendance(eventId) {
 
     async function load() {
       setLoading(true);
+      loadedRef.current = false;
       try {
         const { data, error } = await supabase
           .from('event_attendance')
@@ -63,9 +70,12 @@ export function useEventAttendance(eventId) {
           const att = {};
           (data || []).forEach(a => { att[a.student_id] = a.present; });
           setAttendance(att);
+          setLoadError(null);
+          loadedRef.current = true;
         }
       } catch (e) {
         console.error('Failed to load event attendance:', e);
+        if (!cancelled) setLoadError(e.message || 'Could not load existing marks.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -83,6 +93,12 @@ export function useEventAttendance(eventId) {
   }, []);
 
   const submitAttendance = useCallback(async (students) => {
+    // Refuse rather than overwrite: if the existing marks never loaded, what is
+    // on screen is "unknown", not "everyone absent". The upsert below is
+    // reliable now, which makes writing a wrong take MORE damaging, not less.
+    if (!loadedRef.current) {
+      throw new Error("This event's existing attendance could not be loaded, so it can't be saved over. Go back and reopen it.");
+    }
     setSubmitting(true);
     try {
       const records = students.map(s => ({
@@ -108,5 +124,5 @@ export function useEventAttendance(eventId) {
     }
   }, [eventId, attendance]);
 
-  return { attendance, toggleStudent, loading, submitting, submitAttendance };
+  return { attendance, toggleStudent, loading, submitting, submitAttendance, loadError };
 }

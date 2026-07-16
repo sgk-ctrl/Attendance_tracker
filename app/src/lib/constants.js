@@ -33,3 +33,14 @@ export const TERM_DATES_BY_YEAR = {
   2026: TERM_DATES_2026,
   2027: TERM_DATES_2027,
 };
+
+// The ONLY values band_events.event_type accepts — mirrors the database CHECK
+// constraint (see supabase/schema.sql). Keep the two in sync: the form used to
+// take free text, so every event ever typed was rejected by Postgres and the
+// Events feature has never worked in production.
+export const EVENT_TYPES = [
+  { value: 'concert', label: 'Concert' },
+  { value: 'competition', label: 'Competition' },
+  { value: 'eisteddfod', label: 'Eisteddfod' },
+  { value: 'other', label: 'Other' },
+];

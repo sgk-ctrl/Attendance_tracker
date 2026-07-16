@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { fetchAllRows } from '../lib/fetchAll';
 import Header from '../components/layout/Header';
 import Spinner from '../components/layout/Spinner';
 import Card from '../components/ui/Card';
@@ -52,14 +53,23 @@ export default function Dashboard() {
 
           const studentCount = students?.length || 0;
 
-          const { data: attData } = await supabase
-            .from('attendance')
-            .select('present')
-            .in('session_id', sessionIds);
+          // Paged — PostgREST truncates at 1000 rows silently, which would
+          // quietly deflate this number from mid-term onwards.
+          const attData = await fetchAllRows(() =>
+            supabase.from('attendance').select('present').in('session_id', sessionIds).order('id'));
 
-          const presentCount = (attData || []).filter(a => a.present).length;
-          const possible = studentCount * sessionCount;
-          const avgRate = possible > 0 ? Math.round(presentCount / possible * 100) : 0;
+          // The denominator is the marks actually recorded, NOT
+          // activeStudents x sessions. That cross-product mixed two
+          // independently filtered sets: the numerator counted every present
+          // row ever (including students since deactivated) while the
+          // denominator counted only currently-active ones — so deactivating a
+          // child pushed the rate ABOVE 100%. Every attendance row is one
+          // student expected at one session, which is exactly "possible".
+          const presentCount = attData.filter(a => a.present).length;
+          const possible = attData.length;
+          const avgRate = possible > 0
+            ? Math.min(100, Math.max(0, Math.round(presentCount / possible * 100)))
+            : 0;
 
           bandStats[band.id] = { sessionCount, avgRate, studentCount };
         }

@@ -13,6 +13,10 @@
   --text-muted: #8b9cb8;
   --accent-blue: #3b82f6;
   --accent-blue-light: #60a5fa;
+  /* Secondary button text. Was a hardcoded #93c5fd in Button.jsx — the only
+     colour literal in the app — so the light-mode block below could never
+     remap it, leaving Back/Edit Counts at ~1.75:1 on white. */
+  --btn-secondary-text: #93c5fd;
   --accent-blue-dark: #2563eb;
   --accent-blue-glow: rgba(59, 130, 246, 0.2);
   --accent-blue-border: rgba(59, 130, 246, 0.3);
@@ -336,6 +340,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
+    --btn-secondary-text: #1d4ed8; /* ~8.6:1 on #f8fafc */
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --bg-card: rgba(255, 255, 255, 0.9);

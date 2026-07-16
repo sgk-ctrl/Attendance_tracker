@@ -212,13 +212,24 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
 
   // Submit attendance
   const submitAttendance = useCallback(async () => {
-    if (submittingRef.current) return;
+    // Explicit sentinel, not a bare `return`: returning undefined made the
+    // caller's `result.warning` throw a TypeError into its catch, so a
+    // double-tapped Submit reported "failed to save" on a save that was in
+    // flight and about to succeed.
+    if (submittingRef.current) return { success: true, alreadySubmitting: true };
+
     // Last line of defence for the edit path: if the volunteer asked to edit an
     // existing session but the prefill never loaded (lookup failed, prefill
     // threw), the on-screen marks are blank — not "everyone absent". Writing
     // them would destroy the real take for all 71 children. Refuse instead.
     if (!editPrefillLoadedRef.current) {
-      throw new Error("This session's existing attendance could not be loaded, so it can't be saved over. Go back and reopen it.");
+      const refusal = new Error("This session's existing attendance couldn't be loaded, so it can't be saved over. Go back and reopen it — nothing has been changed.");
+      // Tagged so the UI shows THIS message. It refuses before anything is
+      // stashed, so the generic "kept on this device, it'll sync later" reply
+      // would be a flat lie — and it tells the volunteer to walk away from data
+      // that only exists on their screen.
+      refusal.refused = true;
+      throw refusal;
     }
     submittingRef.current = true;
     setSubmitting(true);
