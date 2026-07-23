@@ -377,7 +377,7 @@ export default function BandHome() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-[var(--text-primary)]">Events</h3>
               <button
-                className="bg-[var(--accent-blue)] text-white border-none rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer shadow-[var(--shadow-glow)]"
+                className="bg-[var(--accent-blue)] text-[var(--on-accent-fill)] border-none rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer shadow-[var(--shadow-glow)]"
                 onClick={() => setShowAddEvent(!showAddEvent)}
               >
                 {showAddEvent ? 'Cancel' : '+ Add Event'}

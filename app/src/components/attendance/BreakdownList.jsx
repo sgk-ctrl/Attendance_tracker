@@ -1,6 +1,6 @@
 export default function BreakdownList({ breakdown }) {
   return (
-    <div className="bg-[var(--bg-card)] rounded-[16px] p-5 mb-4 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px]">
+    <div className="bg-[var(--bg-card-solid)] rounded-[16px] p-5 mb-4 shadow-[var(--shadow)] border border-[var(--border-card)]">
       <h3 className="text-[15px] font-bold mb-3 text-[var(--text-primary)]">Breakdown by Instrument</h3>
       {breakdown.map(({ inst, present, total }) => (
         <div

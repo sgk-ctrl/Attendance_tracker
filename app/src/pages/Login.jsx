@@ -96,13 +96,13 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Header gradient matching the app */}
-      <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-5 py-6 text-center border-b border-[rgba(59,130,246,0.1)]">
+      <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-5 py-6 text-center border-b border-[var(--accent-blue-border)]">
         <h1 className="text-2xl font-bold tracking-tight">HNPS Junior Band</h1>
         <div className="text-sm text-white/80 mt-1">Attendance Tracker</div>
       </div>
 
       <main className="p-5 max-w-[400px] mx-auto mt-8 animate-fadeIn">
-        <div className="bg-[var(--bg-card)] rounded-[16px] p-6 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px]">
+        <div className="bg-[var(--bg-card-solid)] rounded-[16px] p-6 shadow-[var(--shadow)] border border-[var(--border-card)]">
           {notAuthorized ? (
             <div className="text-center">
               <div className="text-3xl mb-3">&#128683;</div>
@@ -112,7 +112,7 @@ export default function Login() {
               </div>
               <button
                 onClick={handleSignOut}
-                className="bg-[var(--accent-blue)] text-white border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200"
+                className="bg-[var(--accent-blue)] text-[var(--on-accent-fill)] border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200"
               >
                 Sign in with a different account
               </button>
@@ -161,7 +161,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={sending || cooldown > 0}
-                  className="bg-[var(--accent-blue)] text-white border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="bg-[var(--accent-blue)] text-[var(--on-accent-fill)] border-none rounded-xl px-5 py-3 text-sm font-semibold cursor-pointer w-full shadow-[var(--shadow-glow)] active:scale-[0.98] transition-transform duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {sending ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send Magic Link'}
                 </button>
