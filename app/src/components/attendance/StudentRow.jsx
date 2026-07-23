@@ -18,8 +18,8 @@ export default function StudentRow({ student, checked, onToggle }) {
       <div
         className={`w-7 h-7 border-2 rounded-md flex items-center justify-center flex-shrink-0 transition-all duration-200 text-base ${
           checked
-            ? 'bg-[var(--accent-green)] border-[var(--accent-green)] text-white'
-            : 'border-[#475569] text-transparent'
+            ? 'bg-[var(--accent-green)] border-[var(--accent-green)] text-[var(--on-accent-fill)]'
+            : 'border-[var(--rule-pending)] text-transparent'
         }`}
       >
         &#10003;

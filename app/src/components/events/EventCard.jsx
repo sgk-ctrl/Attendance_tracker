@@ -10,7 +10,7 @@ export default function EventCard({ event, bandId }) {
 
   return (
     <div
-      className="bg-[var(--bg-card)] rounded-[16px] p-4 mb-3 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px] cursor-pointer active:bg-[var(--accent-blue-bg)] transition-colors duration-200"
+      className="bg-[var(--bg-card-solid)] rounded-[16px] p-4 mb-3 shadow-[var(--shadow)] border border-[var(--border-card)] cursor-pointer active:bg-[var(--accent-blue-bg)] transition-colors duration-200"
       onClick={() => navigate(`/band/${bandId}/events/${event.id}`)}
     >
       <div className="flex items-center gap-3">

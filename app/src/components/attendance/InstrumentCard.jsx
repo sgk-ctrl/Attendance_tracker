@@ -49,13 +49,13 @@ export default function InstrumentCard({ instrument, expected, value, onValueCha
         <div className="text-[13px] text-[var(--text-secondary)] mt-0.5">Expected: {expected}</div>
         <div className="flex gap-1.5 mt-1.5">
           <button
-            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--accent-green-bg)] text-[var(--accent-green)] border-[var(--accent-green-border)] active:bg-[var(--accent-green)] active:text-white"
+            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--accent-green-bg)] text-[var(--accent-green)] border-[var(--accent-green-border)] active:bg-[var(--accent-green)] active:text-[var(--on-accent-fill)]"
             onClick={handleAll}
           >
             All ({expected})
           </button>
           <button
-            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] active:bg-[var(--text-muted)] active:text-white"
+            className="px-2.5 py-1 rounded-[14px] text-xs font-semibold border cursor-pointer transition-all duration-200 bg-[var(--surface-elevated)] text-[var(--text-secondary)] border-[var(--border-subtle)] active:bg-[var(--text-muted)] active:text-[var(--on-accent-fill)]"
             onClick={handleNone}
           >
             None

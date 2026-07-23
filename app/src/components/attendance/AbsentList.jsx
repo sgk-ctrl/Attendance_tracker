@@ -3,7 +3,7 @@ export default function AbsentList({ breakdown }) {
   if (!hasAbsent) return null;
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-[16px] p-5 mb-4 shadow-[var(--shadow)] border border-[var(--border-card)] backdrop-blur-[10px]">
+    <div className="bg-[var(--bg-card-solid)] rounded-[16px] p-5 mb-4 shadow-[var(--shadow)] border border-[var(--border-card)]">
       <h4 className="text-sm font-bold text-[var(--accent-red)] mb-2">
         Absent Students
       </h4>
