@@ -10,7 +10,7 @@ export default function TallyFooter({ enteredCount, totalInstruments, tallyTotal
         {enteredCount} of {totalInstruments} entered
       </div>
       <div className="text-center text-lg font-bold mb-3 text-[var(--text-primary)]" aria-live="polite">
-        Accounted: <span className="text-[var(--accent-blue-light)]">{tallyTotal}</span> / {totalStudents}
+        Accounted: <span className="display-num text-[var(--accent-blue-light)] text-xl">{tallyTotal}</span> <span className="text-[var(--text-muted)]">/ {totalStudents}</span>
       </div>
       <Button
         onClick={onNext}

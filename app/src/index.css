@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Hallmark · redesign (visual layer) · genre: utilitarian app, dark-first
+ * theme: custom "brass on slate" — brand + status hues moved off the Tailwind
+ * default palette; system display face + tabular figures (no web-font fetch,
+ * offline-safe); glass flattened to give the flow real hierarchy; silent
+ * success (no count-up). Contrast verified in Chrome, both themes, all AA.
+ * pre-emit critique: P4 H4 E4 S5 R5 V4
+ */
+
 /* ---- Custom Properties ---- */
 :root {
   color-scheme: dark;
@@ -7,32 +15,40 @@
   --bg-secondary: #111827;
   --bg-card: rgba(17, 24, 39, 0.8);
   --bg-card-solid: #111827;
-  --border-card: rgba(59, 130, 246, 0.15);
+  --border-card: oklch(0.80 0.13 82 / 0.14);
   --text-primary: #f1f5f9;
   --text-secondary: #a0b3cc;
   --text-muted: #8b9cb8;
-  --accent-blue: #3b82f6;
-  --accent-blue-light: #60a5fa;
-  /* Secondary button text. Was a hardcoded #93c5fd in Button.jsx — the only
-     colour literal in the app — so the light-mode block below could never
-     remap it, leaving Back/Edit Counts at ~1.75:1 on white. */
-  --btn-secondary-text: #93c5fd;
-  --accent-blue-dark: #2563eb;
-  --accent-blue-glow: rgba(59, 130, 246, 0.2);
-  --accent-blue-border: rgba(59, 130, 246, 0.3);
-  --accent-blue-bg: rgba(59, 130, 246, 0.1);
-  --accent-blue-bg-strong: rgba(59, 130, 246, 0.15);
-  --accent-green: #22c55e;
-  --accent-green-dark: #16a34a;
-  --accent-green-bg: rgba(34, 197, 94, 0.1);
-  --accent-green-border: rgba(34, 197, 94, 0.3);
-  --accent-red: #ef4444;
-  --accent-red-dark: #dc2626;
-  --accent-red-bg: rgba(239, 68, 68, 0.1);
-  --accent-red-border: rgba(239, 68, 68, 0.3);
-  --accent-orange: #f59e0b;
-  --accent-orange-bg: rgba(245, 158, 11, 0.1);
-  --accent-orange-border: rgba(245, 158, 11, 0.3);
+  /* Brand = brass/gold — a band's colour, and deliberately NOT the Tailwind
+     blue-500 (#3b82f6) default every generated UI ships with. The token is
+     still named `--accent-blue` for a minimal diff; the value is the brand.
+     Status hues (green/coral/red) are nudged off their exact Tailwind-500
+     values for the same reason — a designed set, not the sample palette. */
+  --accent-blue: oklch(0.80 0.13 82);
+  --accent-blue-light: oklch(0.85 0.12 84);
+  /* Secondary button text — brass, remapped per theme (light block below). */
+  --btn-secondary-text: oklch(0.85 0.12 84);
+  /* Text that sits ON a brand/success FILL. On dark theme the fills are bright
+     (brass/green ~L0.80), so white text fails — the fill needs dark ink. On
+     light theme (block below) the fills are deep, so it flips to white. This is
+     why a gold button carries near-black text, not white. */
+  --on-accent-fill: oklch(0.20 0.02 80);
+  --accent-blue-dark: oklch(0.71 0.13 79);
+  --accent-blue-glow: oklch(0.80 0.13 82 / 0.22);
+  --accent-blue-border: oklch(0.80 0.13 82 / 0.30);
+  --accent-blue-bg: oklch(0.80 0.13 82 / 0.10);
+  --accent-blue-bg-strong: oklch(0.80 0.13 82 / 0.16);
+  --accent-green: oklch(0.78 0.15 158);
+  --accent-green-dark: oklch(0.68 0.15 158);
+  --accent-green-bg: oklch(0.78 0.15 158 / 0.12);
+  --accent-green-border: oklch(0.78 0.15 158 / 0.30);
+  --accent-red: oklch(0.67 0.19 23);
+  --accent-red-dark: oklch(0.60 0.19 23);
+  --accent-red-bg: oklch(0.67 0.19 23 / 0.12);
+  --accent-red-border: oklch(0.67 0.19 23 / 0.30);
+  --accent-orange: oklch(0.74 0.15 42);
+  --accent-orange-bg: oklch(0.74 0.15 42 / 0.12);
+  --accent-orange-border: oklch(0.74 0.15 42 / 0.30);
   --surface-input: rgba(15, 23, 42, 0.8);
   --surface-elevated: rgba(30, 41, 59, 0.6);
   --border-subtle: rgba(148, 163, 184, 0.1);
@@ -40,10 +56,27 @@
   --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
   --shadow-lg: 0 10px 15px rgba(0,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+  --shadow-glow: 0 0 20px oklch(0.80 0.13 82 / 0.28);
   --radius: 16px;
   --radius-sm: 8px;
   --transition: 0.2s ease;
+  /* Display face for headings + the big present/absent numeral. System-only on
+     purpose: this app runs in a hall on bad reception, so a blocking web-font
+     fetch is the wrong trade. Character comes from platform display faces +
+     tabular figures + tracking (see .display-num), not a downloaded typeface.
+     Upgrade path: bundle a face via @fontsource (offline-safe) if wanted. */
+  --font-display: "SF Pro Display", "Segoe UI Variable Display", "Segoe UI",
+    system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* The hero numeral (present / total) and other big figures. Tabular so digits
+   don't jitter, tight tracking + heavy weight so the peak of the screen reads
+   like a headline, not a form label. */
+.display-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-weight: 800;
 }
 
 body {
@@ -340,36 +373,40 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 @media (prefers-color-scheme: light) {
   :root {
     color-scheme: light;
-    --btn-secondary-text: #1d4ed8; /* ~8.6:1 on #f8fafc */
+    /* Brand brass, dark enough for white button text + text-on-white to pass
+       AA on #f8fafc. Gold-on-white is the classic contrast failure — these are
+       deep-bronze values (L≈0.48–0.52), not bright gold. */
+    --btn-secondary-text: oklch(0.48 0.11 68); /* deep bronze, ~5:1 on #f8fafc */
+    --on-accent-fill: #ffffff; /* fills are deep here — white passes */
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --bg-card: rgba(255, 255, 255, 0.9);
     --bg-card-solid: #ffffff;
     --bg-card-hover: rgba(255, 255, 255, 1);
-    --border-card: rgba(59, 130, 246, 0.2);
+    --border-card: oklch(0.50 0.10 72 / 0.22);
     --border-subtle: #e2e8f0;
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #64748b;
-    --accent-blue: #2563eb;
-    --accent-blue-light: #3b82f6;
-    --accent-blue-dark: #1d4ed8;
-    --accent-blue-border: rgba(59, 130, 246, 0.3);
-    --accent-blue-glow: rgba(59, 130, 246, 0.1);
-    --accent-blue-bg: rgba(59, 130, 246, 0.08);
-    --accent-blue-bg-strong: rgba(59, 130, 246, 0.15);
-    --accent-green: #16a34a;
-    --accent-green-light: #22c55e;
-    --accent-green-dark: #15803d;
-    --accent-green-bg: #f0fdf4;
-    --accent-green-border: #86efac;
-    --accent-red: #dc2626;
-    --accent-red-dark: #b91c1c;
-    --accent-red-bg: #fef2f2;
-    --accent-red-border: #fca5a5;
-    --accent-orange: #d97706;
-    --accent-orange-bg: #fffbeb;
-    --accent-orange-border: #fcd34d;
+    --accent-blue: oklch(0.44 0.11 68);       /* button fill — white text ≥4.5 */
+    --accent-blue-light: oklch(0.48 0.11 68); /* numeral + link text on white */
+    --accent-blue-dark: oklch(0.44 0.11 68);
+    --accent-blue-border: oklch(0.50 0.11 70 / 0.35);
+    --accent-blue-glow: oklch(0.50 0.11 70 / 0.12);
+    --accent-blue-bg: oklch(0.50 0.11 70 / 0.08);
+    --accent-blue-bg-strong: oklch(0.50 0.11 70 / 0.14);
+    --accent-green: oklch(0.46 0.14 158);
+    --accent-green-light: oklch(0.62 0.15 158);
+    --accent-green-dark: oklch(0.42 0.14 158);
+    --accent-green-bg: oklch(0.52 0.14 158 / 0.10);
+    --accent-green-border: oklch(0.52 0.14 158 / 0.35);
+    --accent-red: oklch(0.53 0.20 25);
+    --accent-red-dark: oklch(0.47 0.20 25);
+    --accent-red-bg: oklch(0.53 0.20 25 / 0.08);
+    --accent-red-border: oklch(0.53 0.20 25 / 0.35);
+    --accent-orange: oklch(0.55 0.16 45);
+    --accent-orange-bg: oklch(0.55 0.16 45 / 0.10);
+    --accent-orange-border: oklch(0.55 0.16 45 / 0.35);
     --surface-input: #ffffff;
     --surface-elevated: rgba(241, 245, 249, 0.8);
     --surface-header-from: #1e40af;
@@ -378,7 +415,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
     --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
     --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
-    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+    --shadow-glow: 0 0 20px oklch(0.50 0.11 70 / 0.14);
     --shadow-card: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
   }
 
