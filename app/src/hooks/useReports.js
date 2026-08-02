@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { fetchAllRows } from '../lib/fetchAll';
+import { computeReport } from '../lib/reports';
 
 export function useReports(bandId) {
   const [loading, setLoading] = useState(false);
@@ -36,72 +37,14 @@ export function useReports(bandId) {
 
       const students = studRes.data || [];
       const instruments = instRes.data || [];
-      const totalSessions = sessions.length;
 
-      const instMap = {};
-      instruments.forEach(i => { instMap[i.id] = i.name; });
-
-      // Student attendance
-      const studentAtt = {};
-      students.forEach(s => { studentAtt[s.id] = { student: s, attended: 0 }; });
-      attData.forEach(a => {
-        if (a.present && studentAtt[a.student_id]) {
-          studentAtt[a.student_id].attended++;
-        }
-      });
-
-      const studentRows = Object.values(studentAtt)
-        .map(sa => ({
-          id: sa.student.id,
-          name: `${sa.student.first_name} ${sa.student.last_name}`,
-          instrument: instMap[sa.student.instrument_id] || '?',
-          instrumentId: sa.student.instrument_id,
-          attended: sa.attended,
-          total: totalSessions,
-          pct: totalSessions > 0 ? Math.round(sa.attended / totalSessions * 100) : 0,
-        }))
-        .sort((a, b) => a.pct - b.pct);
-
-      // Instrument attendance
-      const instRows = instruments.map(inst => {
-        const studs = students.filter(s => s.instrument_id === inst.id);
-        const possible = studs.length * totalSessions;
-        let attended = 0;
-        studs.forEach(s => { attended += (studentAtt[s.id]?.attended || 0); });
-        return {
-          id: inst.id,
-          name: inst.name,
-          attended,
-          possible,
-          pct: possible > 0 ? Math.round(attended / possible * 100) : 0,
-        };
-      }).sort((a, b) => a.pct - b.pct);
-
-      // Detailed register data
-      const sortedSessions = [...sessions].sort((a, b) => a.session_date.localeCompare(b.session_date));
-      const attMap = {};
-      attData.forEach(a => {
-        attMap[`${a.student_id}_${a.session_id}`] = a.present;
-      });
-
-      const registerByInst = instruments
-        .map(inst => {
-          const studs = students
-            .filter(s => s.instrument_id === inst.id)
-            .sort((a, b) => a.last_name.localeCompare(b.last_name));
-          return studs.length > 0 ? { inst, studs } : null;
-        })
-        .filter(Boolean);
+      // All arithmetic lives in lib/reports.js (pure, tested under Node, ports
+      // to native unchanged). This hook only fetches and stores.
+      const computed = computeReport({ sessions, attData, students, instruments });
 
       setReportData({
         empty: false,
-        studentRows,
-        instRows,
-        totalSessions,
-        sortedSessions,
-        registerByInst,
-        attMap,
-        instMap,
+        ...computed,
         year,
         term,
       });

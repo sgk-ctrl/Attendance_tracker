@@ -176,3 +176,26 @@ export function animateCountUp(el, target, total, duration = 800) {
   }
   requestAnimationFrame(step);
 }
+
+// Remove every cached copy of children's data from this device. Called on
+// sign-out: revoking a volunteer in allowed_users stops SERVER reads, but the
+// roster they already cached (71 children's names) stayed in localStorage
+// forever — on a shared or loaned phone that is a real disclosure, and the
+// RUNBOOK's "nothing is permanently stored on phones" promise was false.
+// Deliberately preserves pending_attendance_* — purging those would destroy an
+// unsynced roll call, which is worse than the cache surviving one sign-out.
+export function purgeLocalData() {
+  try {
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (key.startsWith('hnps_students_') || key.startsWith('hnps_instruments_') || key.startsWith('hnps_cache_time_')) {
+        doomed.push(key);
+      }
+    }
+    doomed.forEach(k => localStorage.removeItem(k));
+  } catch (e) {
+    console.warn('purgeLocalData failed', e);
+  }
+}
