@@ -38,16 +38,20 @@ export default function ExportButtons({ reportData, onExport, detailedOnly = fal
     reportData.registerByInst.forEach(({ inst, studs }) => {
       studs.forEach(s => {
         let attended = 0;
+        let marked = 0; // sessions this student was on the roster for
         csv += `"${s.first_name} ${s.last_name}","${reportData.instMap[s.instrument_id] || inst.name}"`;
         reportData.sortedSessions.forEach(sess => {
           const key = `${s.id}_${sess.id}`;
           const present = reportData.attMap[key];
-          if (present === true) { csv += ',P'; attended++; }
-          else if (present === false) { csv += ',A'; }
+          if (present === true) { csv += ',P'; attended++; marked++; }
+          else if (present === false) { csv += ',A'; marked++; }
           else { csv += ',-'; }
         });
-        const pct = reportData.totalSessions > 0 ? Math.round(attended / reportData.totalSessions * 100) : 0;
-        csv += `,${attended},${reportData.totalSessions},${pct}%\n`;
+        // Denominator = the student's OWN marked sessions, matching
+        // lib/reports.js — dividing by the whole term scored a mid-term joiner
+        // 0/15 instead of over the sessions they were actually enrolled for.
+        const pct = marked > 0 ? Math.round(attended / marked * 100) : 0;
+        csv += `,${attended},${marked},${pct}%\n`;
       });
     });
 

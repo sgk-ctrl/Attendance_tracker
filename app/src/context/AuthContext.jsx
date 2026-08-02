@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { purgeLocalData } from '../lib/utils';
 
 const AuthContext = createContext(null);
 
@@ -71,6 +72,8 @@ export function AuthProvider({ children }) {
   const authorized = userEmail && verdict.email === userEmail ? verdict.allowed : null;
 
   const signOut = async () => {
+    // Children's names must not outlive the session on this device.
+    purgeLocalData();
     await supabase.auth.signOut();
     setUser(null);
     setVerdict({ email: null, allowed: null });

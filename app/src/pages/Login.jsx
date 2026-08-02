@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { purgeLocalData } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -88,6 +89,7 @@ export default function Login() {
   };
 
   const handleSignOut = async () => {
+    purgeLocalData();
     await supabase.auth.signOut();
     setSent(false);
     setEmail('');
