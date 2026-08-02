@@ -1,8 +1,32 @@
 # Architecture
 
+## Invariants — do not regress these
+
+This app holds 71 primary-school children's names and attendance. Each rule below
+exists because the opposite was tried and caused a real defect. If a change would
+break one, stop and reconsider — most were reintroduced once already by well-meaning
+edits that trusted an earlier version of this document.
+
+1. **Anonymous callers can read nothing.** RLS is the only thing protecting the data — the anon key is public and shipped in the app bundle. The keep-alive workflow probes every table anonymously and fails if it ever gets a row.
+2. **Authenticated ≠ authorised.** A magic link only proves an email. `allowed_users` decides access. `ProtectedRoute` must wait for that verdict before rendering — never render on `user` alone.
+3. **The database enforces uniqueness, not the client.** Unique indexes on `sessions (band_id, session_date, session_time)` and `attendance (session_id, student_id)`. Insert and adopt on `23505`. Never reintroduce sleep-and-recheck.
+4. **`sessions.session_time` stays `NOT NULL DEFAULT ''`.** NULL never conflicts in a unique index, so a nullable column silently disables rule 3.
+5. **One write path.** `lib/attendance.js` only. The live submit and the offline retry must never have separate copies — they drifted before and silently duplicated every offline rehearsal.
+6. **Sessions are created at submit, never on screen open.** An abandoned flow must not leave a session; reports count sessions and an empty one drags every child's percentage down.
+7. **Save locally before the network, not in a `catch`.** Bad reception stalls rather than fails; a stall never reaches a catch block.
+8. **Check the `error` on every Supabase call.** supabase-js *resolves* on a PostgREST error — an unchecked call reports success while writing nothing. This has bitten this codebase four separate times (attendance update loop, event_attendance update loop, session lookup, session delete). `const { data } = await supabase...` with no `error` is a bug, not a shortcut.
+9. **Never write a blank take over an existing one.** If an edit prefill did not load, the on-screen marks are empty, not "everyone absent" — submit must refuse. A failed read is not an empty result. Both write paths enforce this (`editPrefillLoadedRef`, `loadedRef`); a reliable write makes a wrong take *more* damaging, not less.
+10. **Only claim what actually happened.** "Saved locally for retry" must be conditional on the write-ahead stash returning true; a warning must count what was really dropped. The volunteer's trust is the only error-detection this app has.
+11. **`attendance_summary` keeps `security_invoker = true`.** Without it the view bypasses RLS entirely.
+12. **Read every list with `fetchAllRows`.** PostgREST truncates at the project's Max Rows (default 1000) with NO error, so `if (error)` cannot catch it. Attendance passes 1000 rows mid-term (71 students x 15 sessions) — an unpaged read silently under-counts every child.
+13. **Enum values live in `lib/constants.js` and mirror the DB CHECK.** The Add Event form took free text against a four-value constraint, so every event ever created was rejected by Postgres.
+14. **The schema lives in `supabase/schema.sql`.** Free tier has no point-in-time recovery; dashboard-only state is unreviewable and unrecoverable. Update it in the same commit as any DB change.
+
 ## Overview
 
-The HNPS Band Attendance Tracker is a React single-page application backed by a Supabase PostgreSQL database. The frontend is built with React 19, Vite 8, and Tailwind CSS 4. Authentication uses Supabase magic links (passwordless email). The app is deployed on Vercel with GitHub Pages as a backup. All data queries go directly from the browser to Supabase's auto-generated REST API -- there is no custom backend server.
+The HNPS Band Attendance Tracker is a React single-page application backed by a Supabase PostgreSQL database. The frontend is built with React 19, Vite 8, and Tailwind CSS 4. Authentication uses Supabase magic links (passwordless email). The app is deployed on Vercel; all data queries go directly from the browser to Supabase's auto-generated REST API -- there is no custom backend server.
+
+> **Deployment note (2026-07-14):** Vercel (`hnps-band-attendance.vercel.app`) is the only production deployment. The GitHub Pages copy is **retired** — it served a 10-week-stale build against the same live database and now redirects to Vercel. Do not describe it as a backup or fall back to it.
 
 ## Folder Structure
 
@@ -78,7 +102,8 @@ app/
 │   │   └── ToastContext.jsx       # React context for toast notifications
 │   │
 │   └── lib/
-│       ├── supabase.js            # Supabase client initialization (env vars with hardcoded fallback)
+│       ├── supabase.js            # Supabase client init (env vars w/ fallback; 10s request timeout)
+│       ├── attendance.js          # THE single attendance write path — shared by submit and offline retry
 │       ├── constants.js           # Day/month names, TERM_DATES_2026/2027, TERM_DATES_BY_YEAR, REPORT_YEARS
 │       └── utils.js               # Date formatting, year-aware calcTerm(), localStorage helpers
 │
@@ -123,16 +148,16 @@ This is the core workflow of the app, managed by the `useAttendanceFlow` hook as
 **Step 3 -- Submit and Summary**
 1. User taps "Submit Attendance" (only enabled when all sections are resolved).
 2. `submitAttendance()` runs:
-   a. **Session creation** uses an insert-with-fallback pattern: first checks if a session exists (select), waits 300ms, re-checks, then inserts. If the insert hits a duplicate, it falls back to selecting the existing session. This avoids needing a unique constraint while handling concurrent creation.
-   b. **Attendance saving** uses a select-existing then update/insert pattern: fetches existing attendance records for the session, updates those that already exist, and inserts new ones.
-   c. If the network call fails, records are saved to localStorage via `savePendingAttendance()` for later retry.
+   a. **Write-ahead**: records are saved to localStorage via `savePendingAttendance()` *before* the first network call, and removed only on confirmed success. (Previously this happened in a `catch`, so a stalled request — the normal failure on hall wifi — never triggered it and the whole roll call was lost.)
+   b. **The write itself is delegated to `saveAttendance()` in `lib/attendance.js`** — the single write path, shared with the offline retry. It creates the session (at submit time, not when the flow opens) and upserts all records.
 3. On success, the summary screen shows total present/absent with per-instrument breakdown.
 4. User can tap "Edit Counts" (back to step 1), "Edit Students" (back to step 2), or "Done" (back to BandHome).
 
 ### Offline resilience
 
 - `useBandData` caches instruments and students to localStorage on every successful fetch using band-scoped keys (e.g. `hnps_instruments_${bandId}`), and falls back to the cache if the network fails. The old global `CACHE_KEYS` constant has been removed.
-- `useOfflineSync` scans localStorage for `pending_attendance_*` keys and shows a sync banner on BandHome. Pending attendance keys now include bandId: `pending_attendance_${bandId}_${dateStr}_${sessionType}`. The `retrySync()` function filters by `band_id` on session lookup and creation.
+- `useOfflineSync` scans localStorage for `pending_attendance_*` keys and shows a sync banner on BandHome. Keys are `pending_attendance_${bandId}_${dateStr}_${sessionType}_${sessionTime}` — sessionTime is part of the key because a morning and an afternoon rehearsal on the same date are different sessions, and it is part of the payload because `retrySync()` recreates the session from it (omitting it created sessions the app could never find).
+- `retrySync()` runs automatically on the `online` event and on `visibilitychange`, as well as from the banner's manual button. Nothing listened for those events before, so a pending roll call sat unsynced until someone noticed the banner.
 - The service worker (`sw.js`) uses a stale-while-revalidate strategy for static assets and explicitly skips caching Supabase API calls.
 
 ## Database Schema
@@ -288,23 +313,27 @@ RETURN EXISTS (
 
 ### Policy summary
 
+Current as of 2026-07-14. The authoritative copy is `supabase/schema.sql`; if this table and that file disagree, the file wins.
+
 | Table | SELECT | INSERT | UPDATE | DELETE |
 |-------|--------|--------|--------|--------|
-| bands | Any authenticated or anon | -- | -- | -- |
-| instruments | Any authenticated or anon | -- | -- | -- |
-| term_dates | Any authenticated or anon | -- | -- | -- |
-| allowed_users | Any authenticated | -- | -- | -- |
-| user_roles | Public (open read) | -- | -- | -- |
-| students | Allowed user | -- | -- | -- |
+| bands | Any authenticated | Admin | Admin | -- |
+| instruments | Any authenticated | Admin | Admin | Admin |
+| term_dates | Any authenticated | -- | -- | -- |
+| allowed_users | Own row, or admin | -- | -- | -- |
+| user_roles | Admin only (legacy table, unused by app) | -- | -- | -- |
+| students | Allowed user | Admin | Admin | -- |
 | sessions | Allowed user | Allowed user | -- | Admin only |
 | attendance | Allowed user | Allowed user | Allowed user | Admin only |
 | band_events | Allowed user | Allowed user | Allowed user | Admin only |
 | event_attendance | Allowed user | Allowed user | Allowed user | Admin only |
 
 Key points:
+- **Anonymous callers can read nothing.** Reference data (bands, instruments, term_dates) was readable by `anon` until 2026-07-14; that grant was removed since the app only reads them after sign-in. The keep-alive workflow probes every table anonymously on each run and fails if anything but `[]` comes back.
 - **Reference data** (bands, instruments, term_dates) is readable by any authenticated user, no allow-list check needed.
 - **Student and attendance data** requires the user's email to be in `allowed_users` with `active = true`.
 - **DELETE operations** on sessions, attendance, band_events, and event_attendance are restricted to admin users only. This is why "Reset This Session" only appears for admins in the UI.
+- **`attendance_summary` is a view with `security_invoker = true`.** That setting is the only thing making it safe: without it the view would run as its owner and hand every child's attendance to anonymous callers. Never recreate this view without it.
 
 ## Authentication Flow
 
@@ -332,14 +361,22 @@ The app has about 10 regular users (parent volunteers). A PWA with `manifest.jso
 ### Why magic link auth (not passwords)
 Parent volunteers are not technical users. Magic links eliminate the need to create, remember, or reset passwords. The user enters their email, clicks a link, and they are in. The `allowed_users` table acts as an access control list.
 
-### Why select-then-insert instead of upsert
-The `sessions` table does not have a unique constraint on `(session_date, session_time, band_id)`. Instead of relying on database-level uniqueness, the app uses an application-level pattern: check if a session exists (SELECT), wait briefly, re-check, then INSERT if none found. If the INSERT hits a duplicate, it falls back to selecting the existing one. This defensive approach handles concurrent creation without requiring schema changes.
+### Why the database enforces uniqueness (not the client)
+**Superseded 2026-07-14.** This section used to say the opposite: that `sessions` had no unique constraint and the app should check-wait-recheck-insert instead. That timing dance never actually made creation atomic — two volunteers could both pass the re-check before either insert committed. There is now a unique index on `sessions (band_id, session_date, session_time)` and on `attendance (session_id, student_id)`; the client inserts, and on a `23505` conflict adopts the existing row. Do not reintroduce the sleep-and-recheck pattern.
+
+Related and equally load-bearing: `sessions.session_time` is `NOT NULL DEFAULT ''`. When it was nullable, the offline path inserted NULL, and **NULL never conflicts in a Postgres unique index** — so the constraint silently permitted duplicates while every read path (which filters `session_time = '...'`) could not see the row at all.
+
+### Why there is exactly one write path for attendance
+`lib/attendance.js` (`saveAttendance`) is the only place attendance is written. Both the live submit and the offline retry call it. They used to have separate copies of this logic and the copies drifted: the offline one omitted `session_time`, so a rehearsal recorded offline synced into a session the app could never find and got recorded a second time. If you are changing how attendance is saved, change it there and nowhere else.
+
+### Why not TypeScript
+Considered and deliberately declined. The codebase is maintained by a non-career-coder via AI assistants; a TS migration adds a build-time failure mode and a learning cost without addressing any bug actually seen in production. The defects that have occurred here were logic and schema issues, which types would not have caught. Revisit only if the app grows past a handful of screens.
 
 ### Why light/dark auto-theme
 The app uses CSS custom properties with `prefers-color-scheme` media queries. Volunteers use the app outdoors in Australian sunlight (afternoon rehearsals) and indoors (morning rehearsals). The auto-theme ensures readability in both conditions without manual switching.
 
-### Why Vercel over GitHub Pages for production
-Vercel provides clean URLs without hash routing (SPA rewrites via `vercel.json`), automatic HTTPS, and instant deploys on push. GitHub Pages requires hash routing and has no server-side rewrite support, so it serves as a backup deployment.
+### Why Vercel is the only production deployment
+Vercel provides clean URLs (SPA rewrites via `vercel.json`), automatic HTTPS, and instant deploys on push. GitHub Pages was previously deployed in parallel and drifted 10 weeks behind while serving the same live database — two builds, one set of children's data, and magic links only ever returned to Vercel. It was retired on 2026-07-14: `index.html` on this branch now unregisters the old service worker and redirects to Vercel. GitHub Pages is **not** a backup; if Vercel is down, take attendance on paper and back-enter it by selecting the past date.
 
 ### Why the resolve prompt inverts for majority-present sections
 When a section's count exceeds half the expected students, most students are present. Asking the volunteer to tap the 2 absent students is faster and less error-prone than tapping 15 present ones. The prompt switches to "Tap the N absent student(s)" and defaults everyone to present, which is a behavioral design choice that optimizes for the common case.

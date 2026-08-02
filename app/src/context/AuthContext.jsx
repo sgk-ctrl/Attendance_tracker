@@ -6,6 +6,9 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // allowed_users verdict, keyed by the email it was computed for so a
+  // sign-out/sign-in never reuses a stale verdict.
+  const [verdict, setVerdict] = useState({ email: null, allowed: null });
 
   useEffect(() => {
     // Check if we have auth params stored from a magic link redirect
@@ -45,13 +48,36 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Authorization check: is this signed-in email in allowed_users?
+  const userEmail = user?.email || null;
+  useEffect(() => {
+    if (!userEmail) return;
+    let cancelled = false;
+    supabase
+      .from('allowed_users')
+      .select('id')
+      .ilike('email', userEmail) // case-insensitive, matching is_allowed_user()
+      .eq('active', true)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!cancelled) setVerdict({ email: userEmail, allowed: !error && !!data });
+      });
+    return () => { cancelled = true; };
+  }, [userEmail]);
+
+  // null = no user, or the check for THIS email hasn't finished yet.
+  // Routes must treat null as "still loading", never as authorized —
+  // redirecting before the verdict lands lets any authenticated email in.
+  const authorized = userEmail && verdict.email === userEmail ? verdict.allowed : null;
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setVerdict({ email: null, allowed: null });
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, authorized, signOut }}>
       {children}
     </AuthContext.Provider>
   );

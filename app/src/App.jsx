@@ -10,9 +10,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Spinner from './components/layout/Spinner';
 
 function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, loading, authorized } = useAuth();
   if (loading) return <Spinner show text="Loading..." />;
   if (!user) return <Navigate to="/login" replace />;
+  // Being authenticated is not enough — the email must also be in
+  // allowed_users. Wait for the verdict (authorized === null) rather than
+  // letting the app render while the check is in flight.
+  if (authorized === null) return <Spinner show text="Checking access..." />;
+  if (authorized === false) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
 

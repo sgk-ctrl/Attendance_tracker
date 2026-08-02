@@ -41,6 +41,17 @@ export function buildSessionTime(hour, minute, ampm) {
   return `${hour}:${minute} ${ampm}`;
 }
 
+// The app's default clock time for a session type. Used to repair pending
+// records written by builds before session_time was part of the payload:
+// syncing those with an empty time creates a session no screen can find.
+// A best-guess default is far better than '' — worst case the session shows the
+// standard time instead of an adjusted one; it is still visible and editable.
+export function defaultTimeForType(sessionType) {
+  return sessionType === 'morning' || sessionType === 'wednesday_morning'
+    ? '7:45 AM'
+    : '3:10 PM';
+}
+
 export function sessionTypeFromTime(hour, ampm) {
   const hour24 = ampm === 'PM'
     ? (parseInt(hour) === 12 ? 12 : parseInt(hour) + 12)
@@ -84,21 +95,39 @@ export function getCachedData(bandId) {
   return null;
 }
 
-// bandId is included in the key so pending records for different bands never collide
-export function savePendingAttendance(bandId, dateStr, sessionType, term, year, payload) {
+// bandId is included in the key so pending records for different bands never
+// collide, and sessionTime is included because a morning and an afternoon
+// rehearsal on the same date are different sessions — keying without it meant
+// the second one overwrote the first while it was still pending.
+function pendingKey(bandId, dateStr, sessionType, sessionTime) {
+  return `pending_attendance_${bandId}_${dateStr}_${sessionType}_${sessionTime || ''}`;
+}
+
+// sessionTime and recordedBy MUST be carried: the retry path recreates the
+// session from this payload, and every read path filters on session_time. A
+// pending record saved without it syncs into a session the app cannot see.
+//
+// Returns TRUE only if the roll call is genuinely on disk. Callers must not
+// tell the volunteer "saved locally for retry" without checking — storage can
+// be full or disabled, and that promise is the only thing standing between a
+// failed submit and 71 lost records.
+export function savePendingAttendance({ bandId, dateStr, sessionType, sessionTime, term, year, recordedBy, payload }) {
   try {
-    const key = `pending_attendance_${bandId}_${dateStr}_${sessionType}`;
-    localStorage.setItem(key, JSON.stringify({
+    localStorage.setItem(pendingKey(bandId, dateStr, sessionType, sessionTime), JSON.stringify({
       payload,
       date: dateStr,
       sessionType,
+      sessionTime: sessionTime || '',
       bandId,
       term,
       year,
+      recordedBy: recordedBy || '',
       savedAt: new Date().toISOString(),
     }));
+    return true;
   } catch (e) {
     console.warn('Failed to save pending attendance', e);
+    return false;
   }
 }
 
@@ -113,9 +142,8 @@ export function getPendingAttendanceKeys() {
   return keys;
 }
 
-export function removePendingAttendance(bandId, dateStr, sessionType) {
-  const key = `pending_attendance_${bandId}_${dateStr}_${sessionType}`;
-  localStorage.removeItem(key);
+export function removePendingAttendance(bandId, dateStr, sessionType, sessionTime) {
+  localStorage.removeItem(pendingKey(bandId, dateStr, sessionType, sessionTime));
 }
 
 export function debounce(fn, delay) {

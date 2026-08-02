@@ -7,6 +7,13 @@ import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { calcTerm, defaultTimeForDay, buildSessionTime, sessionTypeFromTime, dateToISO } from '../lib/utils';
+import { EVENT_TYPES } from '../lib/constants';
+
+// One literal for both the initial state and the post-create reset. They were
+// duplicated and drifted: the reset set event_type to '' while the initial
+// state used 'other', so the first event of a session saved and every one after
+// it was rejected by the DB CHECK constraint with a raw Postgres error.
+const EMPTY_EVENT = { name: '', event_type: 'other', event_date: '', event_time: '', venue: '', notes: '' };
 import { supabase } from '../lib/supabase';
 import Header from '../components/layout/Header';
 import TabBar from '../components/layout/TabBar';
@@ -45,6 +52,8 @@ export default function BandHome() {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [existingSession, setExistingSession] = useState(null);
   const [checkingSession, setCheckingSession] = useState(false);
+  // We could not determine whether a session exists (vs. knowing there is none).
+  const [checkFailed, setCheckFailed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [resetting, setResetting] = useState(false);
 
@@ -61,8 +70,13 @@ export default function BandHome() {
     if (!window.confirm(`Delete attendance for this session? This cannot be undone.`)) return;
     setResetting(true);
     try {
-      await supabase.from('attendance').delete().eq('session_id', existingSession.id);
-      await supabase.from('sessions').delete().eq('id', existingSession.id);
+      // Errors MUST be checked: supabase-js resolves rather than throws on a
+      // PostgREST error, so an unchecked delete reported "Session deleted"
+      // while the rows were still there. Deleting the session first lets the
+      // FK's ON DELETE CASCADE remove the attendance rows in the same
+      // statement — the old two-step could half-fail and orphan them.
+      const { error } = await supabase.from('sessions').delete().eq('id', existingSession.id);
+      if (error) throw error;
       setExistingSession(null);
       toast('Session deleted', 'success');
     } catch (e) {
@@ -97,9 +111,15 @@ export default function BandHome() {
   const [reportYear, setReportYear] = useState(2026);
   const [reportTerm, setReportTerm] = useState('');
 
-  // Check existing session
+  // Check existing session.
+  // Tri-state: null = definitely no session, a row = found, undefined = we
+  // don't KNOW. Swallowing the error into null meant a timed-out check (routine
+  // on hall reception, especially with the 10s request abort) showed "Start
+  // Attendance" for a rehearsal a colleague had already recorded — inviting a
+  // duplicate take.
   const checkExisting = useCallback(async () => {
     setCheckingSession(true);
+    setCheckFailed(false);
     try {
       const dateStr = dateToISO(sessionDate);
       const { data, error } = await supabase
@@ -111,8 +131,11 @@ export default function BandHome() {
         .maybeSingle();
       if (error) throw error;
       setExistingSession(data || null);
+      setCheckFailed(false);
     } catch (e) {
       console.error('checkExisting error:', e);
+      setExistingSession(null);
+      setCheckFailed(true); // "unknown", not "none"
     } finally {
       setCheckingSession(false);
     }
@@ -177,7 +200,7 @@ export default function BandHome() {
 
   // Add event
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({ name: '', event_type: '', event_date: '', event_time: '', venue: '', notes: '' });
+  const [newEvent, setNewEvent] = useState(EMPTY_EVENT);
 
   const handleCreateEvent = async () => {
     if (!newEvent.name || !newEvent.event_date) {
@@ -188,7 +211,7 @@ export default function BandHome() {
       await createEvent(newEvent);
       toast('Event created!', 'success');
       setShowAddEvent(false);
-      setNewEvent({ name: '', event_type: '', event_date: '', event_time: '', venue: '', notes: '' });
+      setNewEvent(EMPTY_EVENT);
     } catch (e) {
       toast('Failed to create event: ' + e.message, 'error');
     }
@@ -276,6 +299,23 @@ export default function BandHome() {
                   </details>
                 )}
               </div>
+            ) : checkingSession ? (
+              /* The lookup is in flight — on a cold free-tier backend this is a
+                 real window, and starting now risks a duplicate session. */
+              <Button disabled className="mt-5">
+                Checking for an existing session...
+              </Button>
+            ) : checkFailed ? (
+              /* "Unknown", not "none": showing Start here invites a second take
+                 over a rehearsal a colleague already recorded. */
+              <div className="mt-5">
+                <div className="rounded-lg px-4 py-3 mb-3 text-sm text-[var(--accent-orange)] bg-[var(--accent-orange-bg)] border border-[var(--accent-orange-border)]">
+                  Couldn&apos;t check whether this session was already recorded. Starting now could create a duplicate.
+                </div>
+                <Button variant="secondary" onClick={checkExisting}>
+                  Try again
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={handleStart}
@@ -354,13 +394,21 @@ export default function BandHome() {
                     onChange={(e) => setNewEvent(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
                   />
-                  <input
-                    type="text"
-                    placeholder="Event type (e.g. Concert, Rehearsal)"
-                    value={newEvent.event_type}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, event_type: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
-                  />
+                  {/* A <select> over the DB's allowed values, not free text:
+                      the old input let volunteers type anything, and Postgres
+                      rejected every value that was not one of these four. */}
+                  <label className="block">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] mb-1 block">Event type</span>
+                    <select
+                      value={newEvent.event_type}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, event_type: e.target.value }))}
+                      className="w-full px-3 py-2.5 border border-[var(--accent-blue-border)] rounded-lg text-sm bg-[var(--surface-input)] text-[var(--text-primary)]"
+                    >
+                      {EVENT_TYPES.map(t => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </label>
                   <input
                     type="date"
                     value={newEvent.event_date}

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { saveAttendance } from '../lib/attendance';
 import { dateToISO, savePendingAttendance, removePendingAttendance } from '../lib/utils';
 
 function getAuthEmail() {
@@ -25,6 +26,10 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
   const [submitting, setSubmitting] = useState(false);
   const [hasDataEntered, setHasDataEntered] = useState(false);
   const submittingRef = useRef(false);
+  // True once an edit-mode prefill has actually loaded the existing marks.
+  // Submit refuses to run while an edit is requested but unloaded — otherwise a
+  // failed prefill lets the volunteer write a blank take over 71 real records.
+  const editPrefillLoadedRef = useRef(false);
 
   const totalStudents = students.length;
 
@@ -48,73 +53,41 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
     }
   }, [bandId]);
 
-  // Start or edit attendance
+  // Start or edit attendance. Read-only: looks up an existing session (for
+  // edit mode) but never creates one — the session is created at SUBMIT time
+  // (see lib/attendance.js), otherwise an abandoned flow leaves an empty
+  // session that reports count as real.
   const startAttendance = useCallback(async (editMode = false) => {
     const dateStr = dateToISO(sessionDate);
-    const volunteerName = getAuthEmail();
+    editPrefillLoadedRef.current = !editMode; // nothing to load unless editing
 
     let session = existingSession;
     if (!session) {
-      // First check: look for an existing session
-      const { data: existing } = await supabase
+      // The error MUST be checked and thrown. supabase-js resolves rather than
+      // throws on a PostgREST error, so swallowing it here made `session` null
+      // on any transient blip — which sent edit mode down the reset branch and
+      // silently reproduced the blank-then-overwrite bug this gate exists to
+      // prevent. A failed lookup is not "no session".
+      const { data: existing, error: findErr } = await supabase
         .from('sessions')
         .select('*')
         .eq('session_date', dateStr)
         .eq('session_time', sessionTime || '')
         .eq('band_id', bandId)
         .maybeSingle();
-      if (existing) {
-        session = existing;
-      } else {
-        // Brief delay then re-check to guard against concurrent creation
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const { data: recheck } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('session_date', dateStr)
-          .eq('session_time', sessionTime || '')
-          .eq('band_id', bandId)
-          .maybeSingle();
-        if (recheck) {
-          session = recheck;
-        } else {
-          // Insert new session (select-then-insert avoids needing a unique constraint)
-          const { data, error } = await supabase
-            .from('sessions')
-            .insert({
-              session_date: dateStr,
-              session_type: sessionType,
-              session_time: sessionTime || '',
-              term,
-              year,
-              band_id: bandId,
-              recorded_by: volunteerName,
-            })
-            .select()
-            .single();
-          if (error) {
-            // If duplicate, try to find the existing one
-            const { data: existingSession } = await supabase
-              .from('sessions')
-              .select('*')
-              .eq('session_date', dateStr)
-              .eq('session_time', sessionTime || '')
-              .eq('band_id', bandId)
-              .maybeSingle();
-            if (existingSession) {
-              session = existingSession;
-            } else {
-              throw error;
-            }
-          } else {
-            session = data;
-          }
-        }
-      }
+      if (findErr) throw findErr;
+      session = existing || null;
+      // Cache it so submit reuses this row instead of re-querying, and so the
+      // edit branch below stays true on re-render.
+      if (session) setExistingSession(session);
     }
-    setSessionId(session.id);
+    setSessionId(session ? session.id : null);
 
-    if (editMode && existingSession) {
+    // Gate on the freshly-fetched `session`, NOT on the `existingSession`
+    // state: this screen never calls checkExisting(), so that state was always
+    // null here and edit mode silently fell through to the reset branch —
+    // loading blank, then overwriting every real record on submit.
+    if (editMode && session) {
       const { data: attData, error: attErr } = await supabase
         .from('attendance')
         .select('student_id, present')
@@ -131,6 +104,7 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
         t[inst.id] = studs.filter(s => att[s.id] === true).length;
       });
       setTallies(t);
+      editPrefillLoadedRef.current = true;
     } else {
       setTallies({});
       setAttendance({});
@@ -138,7 +112,7 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
 
     setStep(1);
     return session;
-  }, [sessionDate, sessionTime, sessionType, term, year, bandId, instruments, students, existingSession]);
+  }, [sessionDate, sessionTime, bandId, instruments, students, existingSession]);
 
   // Update a tally value
   const setTally = useCallback((instId, value) => {
@@ -238,73 +212,75 @@ export function useAttendanceFlow({ instruments, students, sessionDate, sessionT
 
   // Submit attendance
   const submitAttendance = useCallback(async () => {
-    if (submittingRef.current) return;
+    // Explicit sentinel, not a bare `return`: returning undefined made the
+    // caller's `result.warning` throw a TypeError into its catch, so a
+    // double-tapped Submit reported "failed to save" on a save that was in
+    // flight and about to succeed.
+    if (submittingRef.current) return { success: true, alreadySubmitting: true };
+
+    // Last line of defence for the edit path: if the volunteer asked to edit an
+    // existing session but the prefill never loaded (lookup failed, prefill
+    // threw), the on-screen marks are blank — not "everyone absent". Writing
+    // them would destroy the real take for all 71 children. Refuse instead.
+    if (!editPrefillLoadedRef.current) {
+      const refusal = new Error("This session's existing attendance couldn't be loaded, so it can't be saved over. Go back and reopen it — nothing has been changed.");
+      // Tagged so the UI shows THIS message. It refuses before anything is
+      // stashed, so the generic "kept on this device, it'll sync later" reply
+      // would be a flat lie — and it tells the volunteer to walk away from data
+      // that only exists on their screen.
+      refusal.refused = true;
+      throw refusal;
+    }
     submittingRef.current = true;
     setSubmitting(true);
 
+    const dateStr = dateToISO(sessionDate);
+    const params = {
+      bandId,
+      dateStr,
+      sessionTime: sessionTime || '',
+      sessionType,
+      term,
+      year,
+      recordedBy: getAuthEmail(),
+    };
+
     const records = students.map(s => ({
-      session_id: sessionId,
       student_id: s.id,
       present: !!attendance[s.id],
     }));
 
-    const dateStr = dateToISO(sessionDate);
+    // WRITE-AHEAD: stash locally BEFORE touching the network, not in the catch.
+    // A stalled request (the normal failure in a hall with bad reception) used
+    // to hang forever without ever reaching a catch block, so the volunteer
+    // force-quit and 71 records vanished with no pending banner. Saving first
+    // means no failure mode — stall, crash, or closed tab — can lose the take.
+    // stashed=false means storage is full/disabled: the safety net is NOT there,
+    // and the UI must not claim otherwise if the submit then fails.
+    const stashed = savePendingAttendance({ ...params, payload: records });
 
     try {
-      // Check if attendance records already exist for this session
-      const { data: existingAtt } = await supabase
-        .from('attendance')
-        .select('student_id')
-        .eq('session_id', sessionId);
+      const { session, warning } = await saveAttendance({ ...params, records });
+      setSessionId(session.id);
+      setExistingSession(session);
 
-      const existingIds = new Set((existingAtt || []).map(e => e.student_id));
-      const toUpdate = records.filter(r => existingIds.has(r.student_id));
-      const toInsert = records.filter(r => !existingIds.has(r.student_id));
-
-      // Update existing records
-      for (const rec of toUpdate) {
-        await supabase
-          .from('attendance')
-          .update({ present: rec.present })
-          .eq('session_id', rec.session_id)
-          .eq('student_id', rec.student_id);
-      }
-
-      // Insert new records
-      if (toInsert.length > 0) {
-        const { error } = await supabase
-          .from('attendance')
-          .insert(toInsert);
-        if (error) {
-          if (error.code === '23503' || (error.message && error.message.includes('foreign key'))) {
-            const { data: freshStudents } = await supabase.from('students').select('id').eq('active', true);
-            const validIds = new Set((freshStudents || []).map(s => s.id));
-            const validInserts = toInsert.filter(r => validIds.has(r.student_id));
-            if (validInserts.length > 0) {
-              const { error: retryErr } = await supabase.from('attendance').insert(validInserts);
-              if (retryErr) throw retryErr;
-            }
-            removePendingAttendance(bandId, dateStr, sessionType);
-            setHasDataEntered(false);
-            setStep(3);
-            return { success: true, warning: 'Some students were excluded due to roster changes.' };
-          }
-          throw error;
-        }
-      }
-
-      removePendingAttendance(bandId, dateStr, sessionType);
+      // Only now is it safe to drop the local copy.
+      removePendingAttendance(bandId, dateStr, sessionType, params.sessionTime);
       setHasDataEntered(false);
       setStep(3);
-      return { success: true };
+      return warning ? { success: true, warning } : { success: true };
     } catch (e) {
-      savePendingAttendance(bandId, dateStr, sessionType, term, year, records);
+      // Tell the truth about whether the take survived: `stashed` decides
+      // whether "we kept it for retry" is a promise or a lie.
+      e.stashed = stashed;
       throw e;
     } finally {
+      // On failure the pending record stays put for the retry path — that is
+      // the whole point of the write-ahead above, so there is nothing to undo.
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [students, sessionId, attendance, sessionDate, sessionType, term, year, bandId]);
+  }, [students, attendance, sessionDate, sessionTime, sessionType, term, year, bandId]);
 
   // Summary data
   const getSummaryData = useCallback(() => {

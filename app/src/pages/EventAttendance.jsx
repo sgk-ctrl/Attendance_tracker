@@ -15,7 +15,7 @@ export default function EventAttendance() {
   const navigate = useNavigate();
   const toast = useToast();
   const { band, students, loading: dataLoading } = useBandData(bandId);
-  const { attendance, toggleStudent, loading: attLoading, submitting, submitAttendance } = useEventAttendance(eventId);
+  const { attendance, toggleStudent, loading: attLoading, submitting, submitAttendance, loadError } = useEventAttendance(eventId);
   const [event, setEvent] = useState(null);
   const [eventLoading, setEventLoading] = useState(true);
 
@@ -76,9 +76,18 @@ export default function EventAttendance() {
               </div>
             )}
 
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
-              Tap students to mark them present.
-            </p>
+            {loadError ? (
+              /* Without this, a failed read renders identically to "nobody
+                 marked yet" — and submitting would write 71 absences over the
+                 real marks. Say which one it is, and block the save. */
+              <div className="rounded-lg px-4 py-3 mb-4 text-sm text-[var(--accent-red)] bg-[var(--accent-red-bg)] border border-[var(--accent-red-border)]">
+                <strong>Existing marks couldn&apos;t be loaded.</strong> The list below may not reflect what was already recorded, so saving is disabled. Check your connection and reopen this event.
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--text-secondary)] mb-4">
+                Tap students to mark them present.
+              </p>
+            )}
 
             <StudentCheckList
               students={students}
@@ -90,9 +99,9 @@ export default function EventAttendance() {
               <Button
                 variant="success"
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || !!loadError}
               >
-                {submitting ? 'Saving...' : 'Submit Attendance'}
+                {submitting ? 'Saving...' : loadError ? 'Unavailable — marks not loaded' : 'Submit Attendance'}
               </Button>
             </div>
           </>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useEvents(bandId) {
@@ -46,6 +46,12 @@ export function useEventAttendance(eventId) {
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // A failed load leaves `attendance` empty, which renders EXACTLY like a
+  // legitimate "nobody marked yet" — and submit would then faithfully write 71
+  // absences over the real marks. An unread list is not an empty list. Mirrors
+  // editPrefillLoadedRef on the rehearsal path (useAttendanceFlow.js).
+  const [loadError, setLoadError] = useState(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     if (!eventId) return;
@@ -53,6 +59,7 @@ export function useEventAttendance(eventId) {
 
     async function load() {
       setLoading(true);
+      loadedRef.current = false;
       try {
         const { data, error } = await supabase
           .from('event_attendance')
@@ -63,9 +70,12 @@ export function useEventAttendance(eventId) {
           const att = {};
           (data || []).forEach(a => { att[a.student_id] = a.present; });
           setAttendance(att);
+          setLoadError(null);
+          loadedRef.current = true;
         }
       } catch (e) {
         console.error('Failed to load event attendance:', e);
+        if (!cancelled) setLoadError(e.message || 'Could not load existing marks.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -83,6 +93,12 @@ export function useEventAttendance(eventId) {
   }, []);
 
   const submitAttendance = useCallback(async (students) => {
+    // Refuse rather than overwrite: if the existing marks never loaded, what is
+    // on screen is "unknown", not "everyone absent". The upsert below is
+    // reliable now, which makes writing a wrong take MORE damaging, not less.
+    if (!loadedRef.current) {
+      throw new Error("This event's existing attendance could not be loaded, so it can't be saved over. Go back and reopen it.");
+    }
     setSubmitting(true);
     try {
       const records = students.map(s => ({
@@ -90,26 +106,23 @@ export function useEventAttendance(eventId) {
         student_id: s.id,
         present: !!attendance[s.id],
       }));
-      // Check existing, update or insert
-      const { data: existing } = await supabase
+
+      // One checked upsert, matching the rehearsal path (lib/attendance.js).
+      // This replaces a read-then-update-loop whose UPDATE results were thrown
+      // away — and supabase-js RESOLVES rather than throws on a PostgREST
+      // error, so a rejected or aborted write reported success while the
+      // database kept the old marks. Relies on the existing unique constraint
+      // event_attendance(event_id, student_id).
+      const { error } = await supabase
         .from('event_attendance')
-        .select('student_id')
-        .eq('event_id', eventId);
-      const existingIds = new Set((existing || []).map(e => e.student_id));
-      for (const rec of records.filter(r => existingIds.has(r.student_id))) {
-        await supabase.from('event_attendance').update({ present: rec.present })
-          .eq('event_id', rec.event_id).eq('student_id', rec.student_id);
-      }
-      const toInsert = records.filter(r => !existingIds.has(r.student_id));
-      if (toInsert.length > 0) {
-        const { error } = await supabase.from('event_attendance').insert(toInsert);
-        if (error) throw error;
-      }
+        .upsert(records, { onConflict: 'event_id,student_id' });
+      if (error) throw error;
+
       return { success: true };
     } finally {
       setSubmitting(false);
     }
   }, [eventId, attendance]);
 
-  return { attendance, toggleStudent, loading, submitting, submitAttendance };
+  return { attendance, toggleStudent, loading, submitting, submitAttendance, loadError };
 }
