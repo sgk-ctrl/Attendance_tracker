@@ -15,10 +15,10 @@ export default function ProgressIndicator({ currentStep }) {
           let circleCls = 'w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0 transition-colors ';
           let labelCls = 'text-[11px] mt-1 font-semibold transition-colors ';
           if (isComplete) {
-            circleCls += 'bg-[var(--accent-green)] text-white';
+            circleCls += 'bg-[var(--accent-green)] text-[var(--on-accent-fill)]';
             labelCls += 'text-[var(--accent-green)]';
           } else if (isCurrent) {
-            circleCls += 'bg-[var(--accent-blue)] text-white';
+            circleCls += 'bg-[var(--accent-blue)] text-[var(--on-accent-fill)]';
             labelCls += 'text-[var(--accent-blue-light)]';
           } else {
             circleCls += 'bg-[rgba(148,163,184,0.15)] text-[var(--text-muted)]';

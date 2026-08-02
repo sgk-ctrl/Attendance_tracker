@@ -21,7 +21,7 @@ export default function Header({ title = 'HNPS Junior Band', subtitle = 'Attenda
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-5 py-4 sticky top-0 z-[100] shadow-[var(--shadow-md)] border-b border-[rgba(59,130,246,0.1)]">
+    <div className="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-white px-5 py-4 sticky top-0 z-[100] shadow-[var(--shadow-md)] border-b border-[var(--accent-blue-border)]">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           {showBack && (

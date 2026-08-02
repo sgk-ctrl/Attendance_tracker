@@ -42,13 +42,17 @@ function ToastContainer({ toasts, onDismiss }) {
       role="alert"
       aria-live="assertive"
     >
+      {/* Text colour is per-variant, not shared: the status fills are bright on
+          the dark theme (white text fails) and deep on the light theme, so they
+          take --on-accent-fill. The neutral "info" toast is a dark slate in BOTH
+          themes, so it keeps white. */}
       {toasts.map(t => (
         <div
           key={t.id}
-          className={`toast rounded-lg px-4 py-3 text-sm font-medium shadow-lg text-white backdrop-blur-[10px] ${
-            t.type === 'error' ? 'bg-[rgba(220,38,38,0.9)] border border-[var(--accent-red-border)]' :
-            t.type === 'success' ? 'bg-[rgba(22,163,74,0.9)] border border-[var(--accent-green-border)]' :
-            'bg-[rgba(30,41,59,0.95)] border border-[var(--border-subtle)]'
+          className={`toast rounded-lg px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-[10px] ${
+            t.type === 'error' ? 'bg-[var(--accent-red)] text-[var(--on-accent-fill)] border border-[var(--accent-red-border)]' :
+            t.type === 'success' ? 'bg-[var(--accent-green-dark)] text-[var(--on-accent-fill)] border border-[var(--accent-green-border)]' :
+            'bg-[rgba(30,41,59,0.95)] text-white border border-[var(--border-subtle)]'
           }`}
           onClick={() => onDismiss(t.id)}
         >
