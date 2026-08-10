@@ -1,43 +1,72 @@
 name: Keep Supabase Alive
 
-# Pings the Supabase backend so the free-tier project never auto-pauses
-# (pause threshold is ~7 days idle; school holidays kill it otherwise).
+# Free-tier Supabase projects are paused when they show "low activity" over a
+# 7-day window. Supabase's own guidance is explicit about the bar:
 #
-# Runs every 3 days — a weekly ping is too close to the 7-day edge because
-# GitHub cron can lag by minutes-to-hours. Doubles as a smoke test: the job
-# fails (and GitHub emails you) if the backend stops returning 200.
+#   "Typically a few user requests to the database each day over the previous
+#    week is enough to keep the project from being paused."
+#   https://supabase.com/docs/guides/platform/free-project-pausing
 #
-# NOTE: this file must live on the DEFAULT branch (main) — scheduled
-# workflows on other branches never run. A copy on react-rebuild was
-# previously inert for exactly that reason.
+# An every-3-days ping is NOT enough — that leaves 4-5 zero-activity days per
+# week. The sibling rollbook project was paused on ~2026-08-08 despite exactly
+# that cron. This project only survived because real users were hitting it;
+# school holidays would have killed it. So: twice a day, several requests a run.
 #
-# NOTE: GitHub disables schedules after ~60 days with no repo activity.
-# Any push or a manual "Run workflow" from the Actions tab re-arms it.
+# The requests are GETs against PostgREST with the publishable (anon) key, under
+# RLS. They can only read — no data is altered.
 #
-# The key below is the Supabase *publishable* (anon) key — safe to commit;
-# it is already public inside the deployed app bundle. RLS protects data.
+# Doubles as a smoke test: the job fails (and GitHub emails you) if the backend
+# stops returning 200.
+#
+# NOTE: this file must live on the DEFAULT branch (main) — scheduled workflows
+# on other branches never run. A copy on react-rebuild was previously inert for
+# exactly that reason.
+#
+# NOTE: GitHub disables schedules after ~60 days with no repo activity. Any push
+# or a manual "Run workflow" from the Actions tab re-arms it.
+#
+# The key below is the Supabase *publishable* (anon) key — safe to commit; it is
+# already public inside the deployed app bundle. RLS protects the data.
 
 on:
   schedule:
-    - cron: '0 19 */3 * *' # every 3 days, 19:00 UTC = 5am AEST
+    - cron: '41 7 * * *' # daily 07:41 UTC = 17:41 AEST
+    - cron: '41 19 * * *' # daily 19:41 UTC = 05:41 AEST
   workflow_dispatch: {}
+
+# Never let two keep-alive runs pile up on each other.
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
 
 jobs:
   ping:
     name: Ping Supabase
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Query bands table (keep-alive + smoke test)
+        env:
+          SUPABASE_URL: https://dirdanwihxwfuqldruoy.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_Q-_p3M1PmqBjhacTiuVdEg_lYoXDpQg
         run: |
           set -euo pipefail
-          STATUS=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
-            "https://dirdanwihxwfuqldruoy.supabase.co/rest/v1/bands?select=id&limit=1" \
-            -H "apikey: sb_publishable_Q-_p3M1PmqBjhacTiuVdEg_lYoXDpQg" \
-            -H "Authorization: Bearer sb_publishable_Q-_p3M1PmqBjhacTiuVdEg_lYoXDpQg")
-          echo "Supabase ping status: $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::Supabase returned $STATUS — project may be paused or unhealthy."
-            cat /tmp/resp.txt
-            exit 1
-          fi
-          echo "Backend awake."
+
+          url="${SUPABASE_URL}/rest/v1/bands?select=id&limit=1"
+
+          # Three requests spaced out, so the day registers as sustained
+          # activity rather than a single instantaneous blip.
+          for i in 1 2 3; do
+            [ "$i" -gt 1 ] && sleep 20
+            code=$(curl -sS --max-time 30 -o /tmp/resp.txt -w "%{http_code}" \
+              -H "apikey: ${SUPABASE_ANON_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+              "$url")
+            echo "request ${i}: HTTP ${code} — $(cat /tmp/resp.txt)"
+            if [ "${code}" != "200" ]; then
+              echo "::error::Supabase returned ${code} — the project may be paused or unhealthy."
+              exit 1
+            fi
+          done
+
+          echo "✓ Backend awake."
